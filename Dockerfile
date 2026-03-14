@@ -1,0 +1,65 @@
+# NOTE: We currently use Ubuntu 22.04 rather than 24.04 because Ubuntu 24.04
+# ships Python 3.12, which triggers the MadGraph warning:
+# "WARNING:root:python3.12+ support: For reweighting feature, please use 3.6.X release."
+FROM hepdock/root:6.34.02-ubuntu22.04
+
+LABEL org.opencontainers.image.source="https://github.com/tueda/hep-env"
+LABEL org.opencontainers.image.description="Container image for high-energy physics tools"
+LABEL org.opencontainers.image.licenses="MIT"
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+WORKDIR /opt
+
+ENV LANG=C.UTF-8
+
+# Running mg5_aMC requires: python3-six
+# Regenerating Autotools files for hepmc requires: automake, libtool
+# Building pythia8 requires: rsync
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    automake=1:1.16.* \
+    libtool=2.4.* \
+    python3-six=1.16.* \
+    rsync=3.2.* \
+    && rm -rf /var/lib/apt/lists/*
+
+ARG MG5_URL=https://launchpad.net/mg5amcnlo/3.0/3.6.x/+download/MG5_aMC_v3.7.0.tar.gz
+ARG MG5_SHA256=b151dee0a46bfd625959ca0202aa5f3a26ed5492a0fb98e1f3c164c860947870
+
+# Install MadGraph5_aMC@NLO.
+RUN wget -nv -O mg5.tar.gz "$MG5_URL" \
+    && echo "$MG5_SHA256  mg5.tar.gz" | sha256sum -c - \
+    && tar -xzf mg5.tar.gz \
+    && rm -f mg5.tar.gz \
+    && mv MG5_* MG5_aMC
+
+# Disable automatic updates.
+RUN echo "n" | /opt/MG5_aMC/bin/mg5_aMC \
+    && echo "set auto_update 0" | /opt/MG5_aMC/bin/mg5_aMC \
+    && grep -q "^auto_update = 0" /opt/MG5_aMC/input/mg5_configuration.txt
+
+# Install HepMC2.
+# We need to use a patched version of the HEPToolsInstallers repository
+# to regenerate Autotools files for HepMC2.
+# See also: https://answers.launchpad.net/mg5amcnlo/+question/706536
+RUN git clone https://github.com/tueda/HEPToolsInstallers.git -b fix/hepmc2-always-autoreconf \
+    && echo "install hepmc --local" | /opt/MG5_aMC/bin/mg5_aMC \
+    && grep -q "^hepmc_path" /opt/MG5_aMC/input/mg5_configuration.txt \
+    && rm -rf HEPToolsInstallers
+
+# Install Pythia8.
+RUN echo "install pythia8" | /opt/MG5_aMC/bin/mg5_aMC \
+    && grep -q "^lhapdf_py3" /opt/MG5_aMC/input/mg5_configuration.txt \
+    && grep -q "^pythia8_path" /opt/MG5_aMC/input/mg5_configuration.txt \
+    && grep -q "^mg5amc_py8_interface_path" /opt/MG5_aMC/input/mg5_configuration.txt
+
+# Install Delphes.
+RUN echo "install Delphes" | /opt/MG5_aMC/bin/mg5_aMC \
+    && test -s /opt/MG5_aMC/Delphes/DelphesSTDHEP
+
+# Enable automatic Python2 -> Python3 model conversion.
+RUN echo "set auto_convert_model T" | /opt/MG5_aMC/bin/mg5_aMC \
+    && grep -q "^auto_convert_model = True" /opt/MG5_aMC/input/mg5_configuration.txt
+
+ENV PATH="/opt/MG5_aMC/bin:/opt/MG5_aMC/HEPTools/bin:$PATH"
+WORKDIR /work
+CMD ["/bin/bash"]

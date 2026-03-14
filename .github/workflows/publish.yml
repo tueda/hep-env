@@ -1,0 +1,197 @@
+name: Build and Publish Docker Image
+
+on:
+  push:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build:
+    name: Build on ${{ matrix.platform }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-24.04
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v6
+
+      - name: Prepare variables
+        id: vars
+        run: |
+          # image: lowercased image reference (registry/repository).
+          echo "image=$(echo '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}' \
+            | tr '[:upper:]' '[:lower:]')" >>"$GITHUB_OUTPUT"
+
+          # platform_pair: artifact-safe platform key.
+          # Example: linux/amd64 -> linux-amd64
+          platform='${{ matrix.platform }}'
+          echo "platform_pair=${platform//\//-}" >>"$GITHUB_OUTPUT"
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          push: true
+          tags: ${{ steps.vars.outputs.image }}
+          outputs: type=image,push-by-digest=true,name-canonical=true,push=true
+
+      - name: Export digest
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/digests"
+          digest='${{ steps.build.outputs.digest }}'
+          case "$digest" in
+            sha256:*)
+              ;;
+            *)
+              echo "Unexpected digest: $digest"
+              exit 1
+              ;;
+          esac
+          touch "$RUNNER_TEMP/digests/${digest#sha256:}"
+
+      - name: Upload digest artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: digests-${{ steps.vars.outputs.platform_pair }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    name: Publish Multi-Arch Image
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Prepare variables
+        id: vars
+        run: |
+          # image: lowercased image reference (registry/repository).
+          echo "image=$(echo '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}' \
+            | tr '[:upper:]' '[:lower:]')" >>"$GITHUB_OUTPUT"
+
+          # ref_tag: Docker-tag-safe ref derived from ref_name.
+          # NOTE: Different branch names can normalize to the same ref_tag
+          # (for example, feature/foo and feature-foo).
+          ref_name='${{ github.ref_name }}'
+          # 1) Normalize case and characters: lowercase and replace
+          #    invalid chars with '-'.
+          #    trim leading/trailing separators, and collapse repeated '-'.
+          ref_tag="$(printf '%s' "$ref_name" \
+            | tr '[:upper:]' '[:lower:]' \
+            | sed -E 's/[^a-z0-9_.-]+/-/g; s/^[.-]+//; s/[.-]+$//; s/-{2,}/-/g')"
+          # 2) Cap to Docker tag max length.
+          ref_tag="${ref_tag:0:128}"
+          # 3) Re-trim trailing separators after truncation.
+          ref_tag="$(printf '%s' "$ref_tag" | sed -E 's/[.-]+$//')"
+          # 4) Fallback when normalization results in an empty tag.
+          if [[ -z "$ref_tag" ]]; then
+            ref_tag="sha-${GITHUB_SHA::12}"
+          fi
+          echo "ref_tag=$ref_tag" >>"$GITHUB_OUTPUT"
+
+          # with_latest: whether to also publish :latest.
+          # Enabled only for tags matching ^v[0-9].
+          if [[ "$ref_name" =~ ^v[0-9] ]]; then
+            echo "with_latest=true" >>"$GITHUB_OUTPUT"
+          else
+            echo "with_latest=false" >>"$GITHUB_OUTPUT"
+          fi
+
+      - name: Download digest artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Create manifest and tags
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          image='${{ steps.vars.outputs.image }}'
+          ref_tag='${{ steps.vars.outputs.ref_tag }}'
+
+          # Build source image list from per-platform digest files.
+          sources=()
+          for digest in *; do
+            sources+=("$image@sha256:$digest")
+          done
+
+          # Guard against publishing an empty manifest when artifacts
+          # are missing.
+          if [[ ${#sources[@]} -eq 0 ]]; then
+            echo "No digest files found in $(pwd)"
+            ls -la
+            exit 1
+          fi
+
+          # For Git tags: publish version tag, and optionally latest.
+          # For branches: publish branch-derived tag only.
+          if [[ '${{ github.ref_type }}' == 'tag' ]]; then
+            version="$ref_tag"
+            target_tag="$version"
+
+            if [[ '${{ steps.vars.outputs.with_latest }}' == 'true' ]]; then
+              docker buildx imagetools create \
+                -t "$image:$version" \
+                -t "$image:latest" \
+                "${sources[@]}"
+            else
+              docker buildx imagetools create \
+                -t "$image:$version" \
+                "${sources[@]}"
+            fi
+          else
+            branch="$ref_tag"
+            target_tag="$branch"
+            docker buildx imagetools create \
+              -t "$image:$branch" \
+              "${sources[@]}"
+          fi
+
+          # Inspect the pushed manifest for a quick sanity check.
+          docker buildx imagetools inspect "$image:$target_tag"
