@@ -2,7 +2,8 @@
   "allowCompoundWords": true,
   "dictionaries": [
     "bash",
-    "docker"
+    "docker",
+    "python"
   ],
   "language": "en",
   "version": "0.2",
@@ -10,6 +11,8 @@
     "autoreconf",
     "Delphes",
     "HepMC",
-    "LHAPDF"
+    "LHAPDF",
+    "pyhf",
+    "spey"
   ]
 }

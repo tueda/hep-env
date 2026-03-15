@@ -19,9 +19,24 @@ ENV LANG=C.UTF-8
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     automake=1:1.16.* \
     libtool=2.4.* \
+    python3-lxml=4.8.* \
+    python3-matplotlib=3.5.* \
+    python3-pip=22.0.* \
+    python3-requests=2.25.* \
+    python3-scipy=1.8.* \
+    python3-semantic-version=2.8.* \
     python3-six=1.16.* \
     rsync=3.2.* \
     && rm -rf /var/lib/apt/lists/*
+
+# MadAnalysis5 dependencies.
+RUN pip install --no-cache-dir \
+    "lxml>=4.6.2" \
+    "matplotlib>=3.4.2" \
+    "numpy>=1.19.5,<2.0.0" \
+    "scipy>=1.7.1" \
+    "spey_pyhf>=0.2.0" \
+    "spey>=0.2.0"
 
 ARG MG5_URL=https://launchpad.net/mg5amcnlo/3.0/3.6.x/+download/MG5_aMC_v3.7.0.tar.gz
 ARG MG5_SHA256=b151dee0a46bfd625959ca0202aa5f3a26ed5492a0fb98e1f3c164c860947870
@@ -53,9 +68,17 @@ RUN echo "install pythia8" | /opt/MG5_aMC/bin/mg5_aMC \
     && grep -q "^pythia8_path =" /opt/MG5_aMC/input/mg5_configuration.txt \
     && grep -q "^mg5amc_py8_interface_path =" /opt/MG5_aMC/input/mg5_configuration.txt
 
+# Install FastJet.
+RUN echo "install fastjet" | /opt/MG5_aMC/bin/mg5_aMC \
+    && grep -q "^fastjet =" /opt/MG5_aMC/input/mg5_configuration.txt
+
 # Install Delphes.
 RUN echo "install Delphes" | /opt/MG5_aMC/bin/mg5_aMC \
     && test -s /opt/MG5_aMC/Delphes/DelphesSTDHEP
+
+# Install MadAnalysis5.
+RUN echo "install MadAnalysis5" | /opt/MG5_aMC/bin/mg5_aMC \
+    && grep -q "^madanalysis5_path =" /opt/MG5_aMC/input/mg5_configuration.txt
 
 # Enable automatic Python2 -> Python3 model conversion.
 RUN echo "set auto_convert_model T" | /opt/MG5_aMC/bin/mg5_aMC \
