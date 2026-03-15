@@ -1,6 +1,7 @@
 # NOTE: We currently use Ubuntu 22.04 rather than 24.04 because Ubuntu 24.04
 # ships Python 3.12, which triggers the MadGraph warning:
 # "WARNING:root:python3.12+ support: For reweighting feature, please use 3.6.X release."
+# See also: https://answers.launchpad.net/mg5amcnlo/+question/816178
 FROM hepdock/root:6.34.02-ubuntu22.04
 
 LABEL org.opencontainers.image.source="https://github.com/tueda/hep-env"
@@ -43,14 +44,14 @@ RUN echo "n" | /opt/MG5_aMC/bin/mg5_aMC \
 # See also: https://answers.launchpad.net/mg5amcnlo/+question/706536
 RUN git clone https://github.com/tueda/HEPToolsInstallers.git -b fix/hepmc2-always-autoreconf \
     && echo "install hepmc --local" | /opt/MG5_aMC/bin/mg5_aMC \
-    && grep -q "^hepmc_path" /opt/MG5_aMC/input/mg5_configuration.txt \
+    && grep -q "^hepmc_path =" /opt/MG5_aMC/input/mg5_configuration.txt \
     && rm -rf HEPToolsInstallers
 
 # Install Pythia8.
 RUN echo "install pythia8" | /opt/MG5_aMC/bin/mg5_aMC \
-    && grep -q "^lhapdf_py3" /opt/MG5_aMC/input/mg5_configuration.txt \
-    && grep -q "^pythia8_path" /opt/MG5_aMC/input/mg5_configuration.txt \
-    && grep -q "^mg5amc_py8_interface_path" /opt/MG5_aMC/input/mg5_configuration.txt
+    && grep -q "^lhapdf_py3 =" /opt/MG5_aMC/input/mg5_configuration.txt \
+    && grep -q "^pythia8_path =" /opt/MG5_aMC/input/mg5_configuration.txt \
+    && grep -q "^mg5amc_py8_interface_path =" /opt/MG5_aMC/input/mg5_configuration.txt
 
 # Install Delphes.
 RUN echo "install Delphes" | /opt/MG5_aMC/bin/mg5_aMC \
