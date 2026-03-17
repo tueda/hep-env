@@ -33,13 +33,9 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
     && rm -rf /var/lib/apt/lists/*
 
 # MadAnalysis5 dependencies.
-RUN pip install --no-cache-dir \
-    "lxml>=4.6.2" \
-    "matplotlib>=3.4.2" \
-    "numpy>=1.19.5,<2.0.0" \
-    "scipy>=1.7.1" \
-    "spey_pyhf>=0.2.0" \
-    "spey>=0.2.0"
+RUN wget -nv https://raw.githubusercontent.com/MadAnalysis/madanalysis5/refs/heads/main/requirements.txt \
+    && pip install --no-cache-dir -r requirements.txt \
+    && rm -f requirements.txt
 
 ARG MG5_URL=https://launchpad.net/mg5amcnlo/3.0/3.6.x/+download/MG5_aMC_v3.7.0.tar.gz
 ARG MG5_SHA256=b151dee0a46bfd625959ca0202aa5f3a26ed5492a0fb98e1f3c164c860947870
