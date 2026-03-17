@@ -18,6 +18,8 @@ ENV LANG=C.UTF-8
 # Building pythia8 requires: rsync
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     automake=1:1.16.* \
+    ghostscript=9.55.* \
+    gnuplot-nox=5.4.* \
     libtool=2.4.* \
     python3-lxml=4.8.* \
     python3-matplotlib=3.5.* \
@@ -27,6 +29,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
     python3-semantic-version=2.8.* \
     python3-six=1.16.* \
     rsync=3.2.* \
+    vim=2:8.2.* \
     && rm -rf /var/lib/apt/lists/*
 
 # MadAnalysis5 dependencies.
