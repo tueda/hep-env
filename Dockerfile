@@ -57,28 +57,28 @@ RUN echo "n" | /opt/MG5_aMC/bin/mg5_aMC \
 # to regenerate Autotools files for HepMC2.
 # See also: https://answers.launchpad.net/mg5amcnlo/+question/706536
 RUN git clone https://github.com/tueda/HEPToolsInstallers.git -b fix/hepmc2-always-autoreconf \
-    && echo "install hepmc --local" | /opt/MG5_aMC/bin/mg5_aMC \
+    && echo "install hepmc --local" | MAKEFLAGS="-j$(nproc)" /opt/MG5_aMC/bin/mg5_aMC \
     && grep -q "^hepmc_path =" /opt/MG5_aMC/input/mg5_configuration.txt \
     && rm -rf HEPToolsInstallers
 
 # Install Pythia8.
-RUN echo "install pythia8" | /opt/MG5_aMC/bin/mg5_aMC \
+RUN echo "install pythia8" | MAKEFLAGS="-j$(nproc)" /opt/MG5_aMC/bin/mg5_aMC \
     && grep -q "^lhapdf_py3 =" /opt/MG5_aMC/input/mg5_configuration.txt \
     && grep -q "^pythia8_path =" /opt/MG5_aMC/input/mg5_configuration.txt \
     && grep -q "^mg5amc_py8_interface_path =" /opt/MG5_aMC/input/mg5_configuration.txt
 
 # Install FastJet.
-RUN echo "install fastjet" | /opt/MG5_aMC/bin/mg5_aMC \
+RUN echo "install fastjet" | MAKEFLAGS="-j$(nproc)" /opt/MG5_aMC/bin/mg5_aMC \
     && grep -q "^fastjet =" /opt/MG5_aMC/input/mg5_configuration.txt
 
 # Install Delphes.
-RUN echo "install Delphes" | /opt/MG5_aMC/bin/mg5_aMC \
+RUN echo "install Delphes" | MAKEFLAGS="-j$(nproc)" /opt/MG5_aMC/bin/mg5_aMC \
     && test -s /opt/MG5_aMC/Delphes/DelphesSTDHEP
 
 # Install MadAnalysis5.
-RUN echo "install MadAnalysis5" | /opt/MG5_aMC/bin/mg5_aMC \
+RUN echo "install MadAnalysis5" | MAKEFLAGS="-j$(nproc)" /opt/MG5_aMC/bin/mg5_aMC \
     && grep -q "^madanalysis5_path =" /opt/MG5_aMC/input/mg5_configuration.txt \
-    && echo "exit" | /opt/MG5_aMC/HEPTools/madanalysis5/madanalysis5/bin/ma5 -f
+    && echo "exit" | MAKEFLAGS="-j$(nproc)" /opt/MG5_aMC/HEPTools/madanalysis5/madanalysis5/bin/ma5 -f
 
 # Enable automatic Python2 -> Python3 model conversion.
 RUN echo "set auto_convert_model T" | /opt/MG5_aMC/bin/mg5_aMC \
