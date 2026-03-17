@@ -77,12 +77,13 @@ RUN echo "install Delphes" | /opt/MG5_aMC/bin/mg5_aMC \
 
 # Install MadAnalysis5.
 RUN echo "install MadAnalysis5" | /opt/MG5_aMC/bin/mg5_aMC \
-    && grep -q "^madanalysis5_path =" /opt/MG5_aMC/input/mg5_configuration.txt
+    && grep -q "^madanalysis5_path =" /opt/MG5_aMC/input/mg5_configuration.txt \
+    && echo "exit" | /opt/MG5_aMC/HEPTools/madanalysis5/madanalysis5/bin/ma5 -f
 
 # Enable automatic Python2 -> Python3 model conversion.
 RUN echo "set auto_convert_model T" | /opt/MG5_aMC/bin/mg5_aMC \
     && grep -q "^auto_convert_model = True" /opt/MG5_aMC/input/mg5_configuration.txt
 
-ENV PATH="/opt/MG5_aMC/bin:/opt/MG5_aMC/HEPTools/bin:$PATH"
+ENV PATH="/opt/MG5_aMC/bin:/opt/MG5_aMC/HEPTools/bin:/opt/MG5_aMC/HEPTools/madanalysis5/madanalysis5/bin:$PATH"
 WORKDIR /work
 CMD ["/bin/bash"]
