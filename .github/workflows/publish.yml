@@ -59,8 +59,9 @@ jobs:
         with:
           context: .
           platforms: ${{ matrix.platform }}
-          push: true
           tags: ${{ steps.vars.outputs.image }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           outputs: type=image,push-by-digest=true,name-canonical=true,push=true
 
       - name: Export digest
