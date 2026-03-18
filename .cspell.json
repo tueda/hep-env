@@ -8,11 +8,13 @@
   "language": "en",
   "version": "0.2",
   "words": [
+    "apptainer",
     "autoreconf",
     "Delphes",
     "HepMC",
     "LHAPDF",
     "pyhf",
-    "spey"
+    "spey",
+    "tueda"
   ]
 }
