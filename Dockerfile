@@ -85,5 +85,9 @@ RUN echo "set auto_convert_model T" | /opt/MG5_aMC/bin/mg5_aMC \
     && grep -q "^auto_convert_model = True" /opt/MG5_aMC/input/mg5_configuration.txt
 
 ENV PATH="/opt/MG5_aMC/bin:/opt/MG5_aMC/HEPTools/bin:/opt/MG5_aMC/HEPTools/madanalysis5/madanalysis5/bin:$PATH"
+ENV LIBRARY_PATH="/opt/MG5_aMC/HEPTools/lhapdf6_py3/lib:$LIBRARY_PATH"
+ENV LD_LIBRARY_PATH="/opt/MG5_aMC/HEPTools/lhapdf6_py3/lib:$LD_LIBRARY_PATH"
+ENV CPATH="/opt/MG5_aMC/HEPTools/lhapdf6_py3/include:$CPATH"
+ENV PYTHONPATH="/opt/MG5_aMC/HEPTools/lhapdf6_py3/lib/python3.10/dist-packages:$PYTHONPATH"
 WORKDIR /work
 CMD ["/bin/bash"]
