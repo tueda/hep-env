@@ -71,29 +71,32 @@ RUN echo "install pythia8" | MAKEFLAGS="-j$(nproc)" /opt/MG5_aMC/bin/mg5_aMC \
 RUN echo "install fastjet" | MAKEFLAGS="-j$(nproc)" /opt/MG5_aMC/bin/mg5_aMC \
     && grep -q "^fastjet =" /opt/MG5_aMC/input/mg5_configuration.txt
 
+# for debugging
+RUN echo hello
+
 # Install Delphes.
 RUN echo "install Delphes" | MAKEFLAGS="-j$(nproc)" /opt/MG5_aMC/bin/mg5_aMC \
     && test -s /opt/MG5_aMC/Delphes/DelphesSTDHEP
 
-# Install MadAnalysis5.
-RUN echo "install MadAnalysis5" | MAKEFLAGS="-j$(nproc)" /opt/MG5_aMC/bin/mg5_aMC \
-    && grep -q "^madanalysis5_path =" /opt/MG5_aMC/input/mg5_configuration.txt
+# # Install MadAnalysis5.
+# RUN echo "install MadAnalysis5" | MAKEFLAGS="-j$(nproc)" /opt/MG5_aMC/bin/mg5_aMC \
+#     && grep -q "^madanalysis5_path =" /opt/MG5_aMC/input/mg5_configuration.txt
 
-# Enable automatic Python2 -> Python3 model conversion.
-RUN echo "set auto_convert_model T" | /opt/MG5_aMC/bin/mg5_aMC \
-    && grep -q "^auto_convert_model = True" /opt/MG5_aMC/input/mg5_configuration.txt
+# # Enable automatic Python2 -> Python3 model conversion.
+# RUN echo "set auto_convert_model T" | /opt/MG5_aMC/bin/mg5_aMC \
+#     && grep -q "^auto_convert_model = True" /opt/MG5_aMC/input/mg5_configuration.txt
 
-# Set environment variables.
-ENV PATH="/opt/MG5_aMC/bin:/opt/MG5_aMC/HEPTools/bin:/opt/MG5_aMC/HEPTools/madanalysis5/madanalysis5/bin:$PATH"
-ENV LIBRARY_PATH="/opt/MG5_aMC/HEPTools/lhapdf6_py3/lib:$LIBRARY_PATH"
-ENV LD_LIBRARY_PATH="/opt/MG5_aMC/HEPTools/lhapdf6_py3/lib:$LD_LIBRARY_PATH"
-ENV CPATH="/opt/MG5_aMC/HEPTools/lhapdf6_py3/include:$CPATH"
-ENV PYTHONPATH="/opt/MG5_aMC/HEPTools/lhapdf6_py3/lib/python3.10/dist-packages:$PYTHONPATH"
+# # Set environment variables.
+# ENV PATH="/opt/MG5_aMC/bin:/opt/MG5_aMC/HEPTools/bin:/opt/MG5_aMC/HEPTools/madanalysis5/madanalysis5/bin:$PATH"
+# ENV LIBRARY_PATH="/opt/MG5_aMC/HEPTools/lhapdf6_py3/lib:$LIBRARY_PATH"
+# ENV LD_LIBRARY_PATH="/opt/MG5_aMC/HEPTools/lhapdf6_py3/lib:$LD_LIBRARY_PATH"
+# ENV CPATH="/opt/MG5_aMC/HEPTools/lhapdf6_py3/include:$CPATH"
+# ENV PYTHONPATH="/opt/MG5_aMC/HEPTools/lhapdf6_py3/lib/python3.10/dist-packages:$PYTHONPATH"
 
-# Build the SampleAnalyzer static library for MadAnalysis 5.
-# This step must come after setting the environment variables,
-# or MadAnalysis 5 will rebuild SampleAnalyzer at startup.
-RUN MAKEFLAGS="-j$(nproc)" /opt/MG5_aMC/HEPTools/madanalysis5/madanalysis5/bin/ma5 -fb
+# # Build the SampleAnalyzer static library for MadAnalysis 5.
+# # This step must come after setting the environment variables,
+# # or MadAnalysis 5 will rebuild SampleAnalyzer at startup.
+# RUN MAKEFLAGS="-j$(nproc)" /opt/MG5_aMC/HEPTools/madanalysis5/madanalysis5/bin/ma5 -fb
 
-WORKDIR /work
-CMD ["/bin/bash"]
+# WORKDIR /work
+# CMD ["/bin/bash"]
