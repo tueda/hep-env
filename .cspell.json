@@ -2,20 +2,30 @@
   "allowCompoundWords": true,
   "dictionaries": [
     "bash",
+    "cpp",
     "docker",
     "python"
   ],
   "language": "en",
+  "overrides": [
+    {
+      "filename": "**/*.patch",
+      "words": [
+        "archi",
+        "sving"
+      ]
+    }
+  ],
   "version": "0.2",
   "words": [
     "apptainer",
     "autoreconf",
-    "CPATH",
-    "Delphes",
-    "HepMC",
-    "LHAPDF",
-    "pyhf",
-    "spey",
-    "tueda"
+    "CPLUS",
+    "delphes",
+    "hepmc",
+    "lhapdf",
+    "Takahiro",
+    "tueda",
+    "Ueda"
   ]
 }

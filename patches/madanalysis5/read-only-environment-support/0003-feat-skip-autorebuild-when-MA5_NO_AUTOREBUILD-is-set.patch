@@ -1,0 +1,28 @@
+From 013171581902194ecb3d9ee3ad5b95c0f0e1dddd Mon Sep 17 00:00:00 2001
+From: Takahiro Ueda <t.ueda.od@juntendo.ac.jp>
+Date: Sat, 21 Mar 2026 19:28:57 +0900
+Subject: [PATCH 3/4] feat: skip autorebuild when MA5_NO_AUTOREBUILD is set
+
+---
+ madanalysis/core/main.py | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/madanalysis/core/main.py b/madanalysis/core/main.py
+index 9098a7a0..bcb040d6 100644
+--- a/madanalysis/core/main.py
++++ b/madanalysis/core/main.py
+@@ -600,6 +600,11 @@ class Main:
+             )
+         elif forced:
+             self.logger.info("  => The user forces to rebuild the library.")
++
++        if not (forced or FirstUse or Missing) and os.environ.get("MA5_NO_AUTOREBUILD", ""):
++            self.logger.info("  => Skipping rebuild because MA5_NO_AUTOREBUILD is set.")
++            return True
++
+         # Initializing the JobWriter
+         compiler = LibraryWriter("lib", self)
+ 
+-- 
+2.43.0
+

@@ -1,0 +1,27 @@
+From b0abdab91d35fb38b7bad3d1c8d7cbf87f8017cb Mon Sep 17 00:00:00 2001
+From: Takahiro Ueda <t.ueda.od@juntendo.ac.jp>
+Date: Sat, 21 Mar 2026 16:42:51 +0900
+Subject: [PATCH 2/4] fix: skip recreating unchanged symbolic links
+
+---
+ madanalysis/system/checkup.py | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/madanalysis/system/checkup.py b/madanalysis/system/checkup.py
+index 60af93d2..64d7f5ef 100644
+--- a/madanalysis/system/checkup.py
++++ b/madanalysis/system/checkup.py
+@@ -395,6 +395,10 @@ class CheckUp:
+ 
+         # Is there a previous link?
+         if os.path.islink(destination):
++            if os.path.realpath(source) == os.path.realpath(destination):
++                logging.getLogger("MA5").debug("symbolic link already exist from " + source)
++                logging.getLogger("MA5").debug("                            to   " + destination)
++                return True
+             try:
+                 os.remove(destination)
+             except:
+-- 
+2.43.0
+
