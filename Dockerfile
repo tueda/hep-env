@@ -96,8 +96,10 @@ ENV PYTHONPATH="/opt/MG5_aMC/HEPTools/lhapdf6_py3/lib/python3.10/dist-packages:$
 # - Prevent writing to the installation directory during configuration checks.
 # - Skip rebuilding when MA5_NO_AUTOREBUILD is set.
 RUN --mount=type=bind,source=scripts/apply-patches.sh,target=/tmp/apply-patches.sh,readonly \
-    --mount=type=bind,source=patches/madanalysis5/read-only-environment-support,target=/tmp/patches,readonly \
-    /tmp/apply-patches.sh /tmp/patches /opt/MG5_aMC/HEPTools/madanalysis5/madanalysis5 \
+    --mount=type=bind,source=patches/madanalysis5/read-only-environment-support,target=/tmp/patches1,readonly \
+    --mount=type=bind,source=patches/madanalysis5/log-open-failure,target=/tmp/patches2,readonly \
+    /tmp/apply-patches.sh /tmp/patches1 /opt/MG5_aMC/HEPTools/madanalysis5/madanalysis5 \
+    && /tmp/apply-patches.sh /tmp/patches2 /opt/MG5_aMC/HEPTools/madanalysis5/madanalysis5 \
     && MAKEFLAGS="-j$(nproc)" /opt/MG5_aMC/HEPTools/madanalysis5/madanalysis5/bin/ma5 -bf
 
 ENV MA5_NO_AUTOREBUILD=1

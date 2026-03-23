@@ -1,0 +1,26 @@
+From 0cfba07630895deb65f8fb1c057d00d6e54fa21f Mon Sep 17 00:00:00 2001
+From: Takahiro Ueda <t.ueda.od@juntendo.ac.jp>
+Date: Mon, 23 Mar 2026 17:13:28 +0900
+Subject: [PATCH] fix(interpreter): log an error when the open command fails
+
+---
+ madanalysis/interpreter/cmd_open.py | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/madanalysis/interpreter/cmd_open.py b/madanalysis/interpreter/cmd_open.py
+index 33de8a63..e24a68c9 100644
+--- a/madanalysis/interpreter/cmd_open.py
++++ b/madanalysis/interpreter/cmd_open.py
+@@ -90,7 +90,8 @@ class CmdOpen(CmdBase):
+         import webbrowser
+ 
+         # Opening a Web Browser window with the page
+-        webbrowser.open(name)
++        if not webbrowser.open(name):
++            logging.getLogger('MA5').error("Failed to open '"+name[7:]+"'")
+ 
+         return
+ 
+-- 
+2.34.1
+
