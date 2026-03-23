@@ -40,12 +40,20 @@ RUN wget -nv https://raw.githubusercontent.com/MadAnalysis/madanalysis5/refs/hea
 ARG MG5_URL=https://launchpad.net/mg5amcnlo/3.0/3.6.x/+download/MG5_aMC_v3.7.0.tar.gz
 ARG MG5_SHA256=b151dee0a46bfd625959ca0202aa5f3a26ed5492a0fb98e1f3c164c860947870
 
+ENV MG5_NO_REFRESH_HEPTOOLS_INSTALLERS=1
+ENV MA5_NO_AUTOREBUILD=1
+
 # Install MadGraph5_aMC@NLO.
-RUN wget -nv -O mg5.tar.gz "$MG5_URL" \
+# A patch is needed in the MadGraph5_aMC@NLO codebase to support
+# MG5_NO_REFRESH_HEPTOOLS_INSTALLERS.
+RUN --mount=type=bind,source=scripts/apply-patches.sh,target=/tmp/apply-patches.sh,readonly \
+    --mount=type=bind,source=patches/mg5amcnlo/allow-skipping-heptools-installers-refresh,target=/tmp/patches,readonly \
+    wget -nv -O mg5.tar.gz "$MG5_URL" \
     && echo "$MG5_SHA256  mg5.tar.gz" | sha256sum -c - \
     && tar -xzf mg5.tar.gz \
     && rm -f mg5.tar.gz \
-    && mv MG5_* MG5_aMC
+    && mv MG5_* MG5_aMC \
+    && /tmp/apply-patches.sh /tmp/patches /opt/MG5_aMC
 
 # Disable automatic updates.
 RUN echo "n" | /opt/MG5_aMC/bin/mg5_aMC \
@@ -53,6 +61,7 @@ RUN echo "n" | /opt/MG5_aMC/bin/mg5_aMC \
     && grep -q "^auto_update = 0" /opt/MG5_aMC/input/mg5_configuration.txt
 
 # Install LHAPDF6.
+# Note that this step downloads HEPToolsInstallers.
 RUN --mount=type=bind,source=scripts/apply-patches.sh,target=/tmp/apply-patches.sh,readonly \
     --mount=type=bind,source=patches/lhapdf/migrate-to-requiring-py3,target=/tmp/patches,readonly \
     echo "install lhapdf6" | MAKEFLAGS="-j$(nproc)" /opt/MG5_aMC/bin/mg5_aMC \
@@ -60,13 +69,14 @@ RUN --mount=type=bind,source=scripts/apply-patches.sh,target=/tmp/apply-patches.
     && grep -q "^lhapdf_py3 =" /opt/MG5_aMC/input/mg5_configuration.txt
 
 # Install HepMC2.
-# We need to use a patched version of the HEPToolsInstallers repository
-# to regenerate Autotools files for HepMC2.
+# We need to apply a patch to the HEPToolsInstallers directory
+# to update HepMC2's config.guess file.
 # See also: https://answers.launchpad.net/mg5amcnlo/+question/706536
-RUN git clone https://github.com/tueda/HEPToolsInstallers.git -b fix/hepmc2-always-autoreconf \
-    && echo "install hepmc --local" | MAKEFLAGS="-j$(nproc)" /opt/MG5_aMC/bin/mg5_aMC \
-    && grep -q "^hepmc_path =" /opt/MG5_aMC/input/mg5_configuration.txt \
-    && rm -rf HEPToolsInstallers
+RUN --mount=type=bind,source=scripts/apply-patches.sh,target=/tmp/apply-patches.sh,readonly \
+    --mount=type=bind,source=patches/HEPToolsInstallers/update-hepmc-config-guess,target=/tmp/patches,readonly \
+    /tmp/apply-patches.sh /tmp/patches /opt/MG5_aMC/HEPTools/HEPToolsInstallers \
+    && echo "install hepmc" | MAKEFLAGS="-j$(nproc)" /opt/MG5_aMC/bin/mg5_aMC \
+    && grep -q "^hepmc_path =" /opt/MG5_aMC/input/mg5_configuration.txt
 
 # Install Pythia8.
 RUN echo "install pythia8" | MAKEFLAGS="-j$(nproc)" /opt/MG5_aMC/bin/mg5_aMC \
@@ -108,8 +118,6 @@ RUN --mount=type=bind,source=scripts/apply-patches.sh,target=/tmp/apply-patches.
     /tmp/apply-patches.sh /tmp/patches1 /opt/MG5_aMC/HEPTools/madanalysis5/madanalysis5 \
     && /tmp/apply-patches.sh /tmp/patches2 /opt/MG5_aMC/HEPTools/madanalysis5/madanalysis5 \
     && MAKEFLAGS="-j$(nproc)" /opt/MG5_aMC/HEPTools/madanalysis5/madanalysis5/bin/ma5 -bf
-
-ENV MA5_NO_AUTOREBUILD=1
 
 WORKDIR /work
 CMD ["/bin/bash"]

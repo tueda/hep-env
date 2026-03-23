@@ -6,16 +6,10 @@
     "docker",
     "python"
   ],
-  "language": "en",
-  "overrides": [
-    {
-      "filename": "**/*.patch",
-      "words": [
-        "archi",
-        "sving"
-      ]
-    }
+  "ignorePaths": [
+    "**/*.patch"
   ],
+  "language": "en",
   "version": "0.2",
   "words": [
     "apptainer",
@@ -24,6 +18,7 @@
     "delphes",
     "hepmc",
     "lhapdf",
+    "mg5amcnlo",
     "Takahiro",
     "tueda",
     "Ueda"
