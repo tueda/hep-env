@@ -1,0 +1,61 @@
+From 151ca9fc4ff2cbcb4c6a93fe907e860eb65c128e Mon Sep 17 00:00:00 2001
+From: Takahiro Ueda <t.ueda.od@juntendo.ac.jp>
+Date: Thu, 19 Mar 2026 19:35:09 +0900
+Subject: [PATCH 1/4] fix: use a temporary directory for g++ checks
+
+Writing files to the MA5 directory fails when it is read-only.
+Use a temporary directory instead.
+---
+ madanalysis/system/detect_gpp.py | 29 ++++++++++++++++-------------
+ 1 file changed, 16 insertions(+), 13 deletions(-)
+
+diff --git a/madanalysis/system/detect_gpp.py b/madanalysis/system/detect_gpp.py
+index fa7b55ea..1b96298e 100644
+--- a/madanalysis/system/detect_gpp.py
++++ b/madanalysis/system/detect_gpp.py
+@@ -29,6 +29,7 @@ import os
+ import sys
+ import re
+ import platform
++import tempfile
+ from shell_command  import ShellCommand
+ from madanalysis.enumeration.detect_status_type import DetectStatusType
+ 
+@@ -70,19 +71,21 @@ class DetectGpp:
+ 
+         # Check C++ version
+         try:
+-            with open(os.path.join(self.archi_info.ma5dir, "cxxtest.cc"), 'w') as f:
+-                f.write("int main() { return 0; }\n")
+-            command = lambda cxx_version: [
+-                f"g++ -std=c++{cxx_version} "
+-                f"{os.path.join(self.archi_info.ma5dir, 'cxxtest.cc')} "
+-                f"-o {os.path.join(self.archi_info.ma5dir, 'cxxtest')}"
+-            ]
+-            for version in [11,14]: # ,17,20]: for the future
+-                result = ShellCommand.Execute(command(version), self.archi_info.ma5dir, shell=True)
+-                if result:
+-                    setattr(self.archi_info, "cpp"+str(version), True)
+-            os.remove(os.path.join(self.archi_info.ma5dir, "cxxtest.cc"))
+-            os.remove(os.path.join(self.archi_info.ma5dir, "cxxtest"))
++            with tempfile.TemporaryDirectory() as temp_dir:
++                test_cc_path = os.path.join(temp_dir, "cxxtest.cc")
++                test_path = os.path.join(temp_dir, "cxxtest")
++                with open(test_cc_path, 'w') as f:
++                    f.write("int main() { return 0; }\n")
++
++                command = lambda cxx_version: [
++                    f"g++ -std=c++{cxx_version} "
++                    f"{test_cc_path} "
++                    f"-o {test_path}"
++                ]
++                for version in [11,14]: # ,17,20]: for the future
++                    result = ShellCommand.Execute(command(version), temp_dir, shell=True)
++                    if result:
++                        setattr(self.archi_info, "cpp"+str(version), True)
+         except Exception as err:
+             self.logger.debug(f"Unexpected {err}, {type(err)}")
+ 
+-- 
+2.43.0
+

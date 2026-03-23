@@ -1,0 +1,61 @@
+From 5753bb0d0c82efcc4732c19a7eed6a6326db77d0 Mon Sep 17 00:00:00 2001
+From: Takahiro Ueda <t.ueda.od@juntendo.ac.jp>
+Date: Sun, 22 Mar 2026 09:11:20 +0900
+Subject: [PATCH 4/4] fix: do not abort in freeze_environment if
+ architecture.ma5 save fails
+
+---
+ madanalysis/misc/freeze_environment.py  | 4 ++--
+ madanalysis/system/architecture_info.py | 9 ++++++---
+ 2 files changed, 8 insertions(+), 5 deletions(-)
+
+diff --git a/madanalysis/misc/freeze_environment.py b/madanalysis/misc/freeze_environment.py
+index cfe0b474..c8cb13dd 100644
+--- a/madanalysis/misc/freeze_environment.py
++++ b/madanalysis/misc/freeze_environment.py
+@@ -25,6 +25,7 @@
+ 
+ 
+ from __future__ import absolute_import
++import logging
+ import os
+ class Architecture(Exception):
+     pass
+@@ -42,8 +43,7 @@ def freeze_environment(func):
+ 
+         # restoring the environment and sving the architecture
+         self.ma5_environ.update(os.environ)
+-        if not self.main.archi_info.save(self.main.archi_info.ma5dir+'/tools/architecture.ma5'):
+-            raise Architecture('Cannot save the architecture')
++        self.main.archi_info.save(self.main.archi_info.ma5dir+'/tools/architecture.ma5',log_failure_as_error=False)
+         os.environ.clear()
+         os.environ.update(old_environ)
+ 
+diff --git a/madanalysis/system/architecture_info.py b/madanalysis/system/architecture_info.py
+index 01b23ad8..bdca0efa 100644
+--- a/madanalysis/system/architecture_info.py
++++ b/madanalysis/system/architecture_info.py
+@@ -139,14 +139,17 @@ class ArchitectureInfo:
+     def __neq__(self,other):
+         return not self.__eq__(other)
+ 
+-    def save(self,filename):
++    def save(self,filename,log_failure_as_error=True):
+ 
+         # Open the file
+         try:
+             file = open(filename,"wb")
+         except:
+-            logging.getLogger('MA5').error("impossible to write the configuration file '" + \
+-                          filename + "'")
++            msg = "impossible to write the configuration file '" + filename + "'"
++            if log_failure_as_error:
++                logging.getLogger('MA5').error(msg)
++            else:
++                logging.getLogger('MA5').info(msg)
+             return False
+ 
+         # Dump data
+-- 
+2.43.0
+

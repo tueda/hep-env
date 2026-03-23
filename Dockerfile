@@ -77,13 +77,30 @@ RUN echo "install Delphes" | MAKEFLAGS="-j$(nproc)" /opt/MG5_aMC/bin/mg5_aMC \
 
 # Install MadAnalysis5.
 RUN echo "install MadAnalysis5" | MAKEFLAGS="-j$(nproc)" /opt/MG5_aMC/bin/mg5_aMC \
-    && grep -q "^madanalysis5_path =" /opt/MG5_aMC/input/mg5_configuration.txt \
-    && echo "exit" | MAKEFLAGS="-j$(nproc)" /opt/MG5_aMC/HEPTools/madanalysis5/madanalysis5/bin/ma5 -f
+    && grep -q "^madanalysis5_path =" /opt/MG5_aMC/input/mg5_configuration.txt
 
 # Enable automatic Python2 -> Python3 model conversion.
 RUN echo "set auto_convert_model T" | /opt/MG5_aMC/bin/mg5_aMC \
     && grep -q "^auto_convert_model = True" /opt/MG5_aMC/input/mg5_configuration.txt
 
-ENV PATH="/opt/MG5_aMC/bin:/opt/MG5_aMC/HEPTools/bin:/opt/MG5_aMC/HEPTools/madanalysis5/madanalysis5/bin:$PATH"
+# Set environment variables.
+ENV PATH="/opt/MG5_aMC/bin:/opt/MG5_aMC/HEPTools/bin:/opt/MG5_aMC/Delphes:/opt/MG5_aMC/HEPTools/madanalysis5/madanalysis5/bin:$PATH"
+ENV LIBRARY_PATH="/opt/MG5_aMC/HEPTools/lhapdf6_py3/lib:/opt/MG5_aMC/Delphes:$LIBRARY_PATH"
+ENV LD_LIBRARY_PATH="/opt/MG5_aMC/HEPTools/lhapdf6_py3/lib:/opt/MG5_aMC/Delphes:$LD_LIBRARY_PATH"
+ENV CPLUS_INCLUDE_PATH="/opt/MG5_aMC/HEPTools/lhapdf6_py3/include:/opt/MG5_aMC/Delphes:$CPLUS_INCLUDE_PATH"
+ENV PYTHONPATH="/opt/MG5_aMC/HEPTools/lhapdf6_py3/lib/python3.10/dist-packages:$PYTHONPATH"
+
+# Build the SampleAnalyzer static library for MadAnalysis 5.
+# This step must be performed after setting the path-related environment variables.
+# We also need to apply patches to:
+# - Prevent writing to the installation directory during configuration checks.
+# - Skip rebuilding when MA5_NO_AUTOREBUILD is set.
+RUN --mount=type=bind,source=scripts/apply-patches.sh,target=/tmp/apply-patches.sh,readonly \
+    --mount=type=bind,source=patches/madanalysis5/read-only-environment-support,target=/tmp/patches,readonly \
+    /tmp/apply-patches.sh /tmp/patches /opt/MG5_aMC/HEPTools/madanalysis5/madanalysis5 \
+    && MAKEFLAGS="-j$(nproc)" /opt/MG5_aMC/HEPTools/madanalysis5/madanalysis5/bin/ma5 -bf
+
+ENV MA5_NO_AUTOREBUILD=1
+
 WORKDIR /work
 CMD ["/bin/bash"]
