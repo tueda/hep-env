@@ -52,6 +52,13 @@ RUN echo "n" | /opt/MG5_aMC/bin/mg5_aMC \
     && echo "set auto_update 0" | /opt/MG5_aMC/bin/mg5_aMC \
     && grep -q "^auto_update = 0" /opt/MG5_aMC/input/mg5_configuration.txt
 
+# Install LHAPDF6.
+RUN --mount=type=bind,source=scripts/apply-patches.sh,target=/tmp/apply-patches.sh,readonly \
+    --mount=type=bind,source=patches/lhapdf/migrate-to-requiring-py3,target=/tmp/patches,readonly \
+    echo "install lhapdf6" | MAKEFLAGS="-j$(nproc)" /opt/MG5_aMC/bin/mg5_aMC \
+    && /tmp/apply-patches.sh /tmp/patches /opt/MG5_aMC/HEPTools/lhapdf6_py3 \
+    && grep -q "^lhapdf_py3 =" /opt/MG5_aMC/input/mg5_configuration.txt
+
 # Install HepMC2.
 # We need to use a patched version of the HEPToolsInstallers repository
 # to regenerate Autotools files for HepMC2.

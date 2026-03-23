@@ -1,0 +1,24 @@
+From ddbe584cb6f1330877c395e5de150a80d327b711 Mon Sep 17 00:00:00 2001
+From: Andy Buckley <andy.buckley@cern.ch>
+Date: Thu, 13 Mar 2025 11:59:05 +0000
+Subject: [PATCH] Migrate to requiring Py3
+
+---
+ bin/lhapdf | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/bin/lhapdf b/bin/lhapdf
+index efe4d961..92c9a31f 100755
+--- a/bin/lhapdf
++++ b/bin/lhapdf
+@@ -1,6 +1,5 @@
+-#! /usr/bin/env python
++#! /usr/bin/env python3
+ 
+-from __future__ import print_function
+ import logging, os, sys
+ import argparse
+ 
+-- 
+2.34.1
+
