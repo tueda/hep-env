@@ -43,6 +43,8 @@ ARG MG5_SHA256=b151dee0a46bfd625959ca0202aa5f3a26ed5492a0fb98e1f3c164c860947870
 ENV MG5_NO_REFRESH_HEPTOOLS_INSTALLERS=1
 ENV MA5_NO_AUTOREBUILD=1
 
+RUN mkdir /data
+
 # Install MadGraph5_aMC@NLO.
 # A patch is needed in the MadGraph5_aMC@NLO codebase to support
 # MG5_NO_REFRESH_HEPTOOLS_INSTALLERS.
@@ -53,7 +55,9 @@ RUN --mount=type=bind,source=scripts/apply-patches.sh,target=/tmp/apply-patches.
     && tar -xzf mg5.tar.gz \
     && rm -f mg5.tar.gz \
     && mv MG5_* MG5_aMC \
-    && /tmp/apply-patches.sh /tmp/patches /opt/MG5_aMC
+    && /tmp/apply-patches.sh /tmp/patches /opt/MG5_aMC \
+    && mv /opt/MG5_aMC/models /data \
+    && ln -s /data/models /opt/MG5_aMC/models
 
 # Disable automatic updates.
 RUN echo "n" | /opt/MG5_aMC/bin/mg5_aMC \
@@ -66,7 +70,9 @@ RUN --mount=type=bind,source=scripts/apply-patches.sh,target=/tmp/apply-patches.
     --mount=type=bind,source=patches/lhapdf/migrate-to-requiring-py3,target=/tmp/patches,readonly \
     echo "install lhapdf6" | MAKEFLAGS="-j$(nproc)" /opt/MG5_aMC/bin/mg5_aMC \
     && /tmp/apply-patches.sh /tmp/patches /opt/MG5_aMC/HEPTools/lhapdf6_py3 \
-    && grep -q "^lhapdf_py3 =" /opt/MG5_aMC/input/mg5_configuration.txt
+    && grep -q "^lhapdf_py3 =" /opt/MG5_aMC/input/mg5_configuration.txt \
+    && mv /opt/MG5_aMC/HEPTools/lhapdf6_py3/share/LHAPDF /data \
+    && ln -s /data/LHAPDF /opt/MG5_aMC/HEPTools/lhapdf6_py3/share/LHAPDF
 
 # Install HepMC2.
 # We need to apply a patch to the HEPToolsInstallers directory
