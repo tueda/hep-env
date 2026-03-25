@@ -18,6 +18,7 @@ ENV LANG=C.UTF-8
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     ghostscript=9.55.* \
     gnuplot-nox=5.4.* \
+    libboost-all-dev=1.74.* \
     python3-lxml=4.8.* \
     python3-matplotlib=3.5.* \
     python3-pip=22.0.* \
@@ -73,12 +74,17 @@ RUN echo "set auto_convert_model T" | $MG5_DIR/bin/mg5_aMC \
 RUN --mount=type=bind,source=scripts/apply-patches.sh,target=/tmp/apply-patches.sh,readonly \
     --mount=type=bind,source=patches/lhapdf/migrate-to-requiring-py3,target=/tmp/patches1,readonly \
     --mount=type=bind,source=patches/HEPToolsInstallers/update-hepmc-config-guess,target=/tmp/patches2,readonly \
+    --mount=type=bind,source=patches/HEPToolsInstallers/install-emela-boost-path,target=/tmp/patches3,readonly \
     echo "install lhapdf6" | MAKEFLAGS="-j$(nproc)" $MG5_DIR/bin/mg5_aMC \
     && grep -q "^lhapdf_py3 =" $MG5_DIR/input/mg5_configuration.txt \
     && /tmp/apply-patches.sh /tmp/patches1 $MG5_DIR/HEPTools/lhapdf6_py3 \
     && /tmp/apply-patches.sh /tmp/patches2 $MG5_DIR/HEPTools/HEPToolsInstallers \
+    && /tmp/apply-patches.sh /tmp/patches3 $MG5_DIR/HEPTools/HEPToolsInstallers \
     && mv $MG5_DIR/HEPTools/lhapdf6_py3/share/LHAPDF $DATA_DIR \
     && ln -s $DATA_DIR/LHAPDF $MG5_DIR/HEPTools/lhapdf6_py3/share/LHAPDF
+
+RUN echo "install eMELA" | MAKEFLAGS="-j$(nproc)" $MG5_DIR/bin/mg5_aMC \
+    && grep -q "^eMELA = " $MG5_DIR/input/mg5_configuration.txt
 
 # Install HepMC2.
 RUN echo "install hepmc" | MAKEFLAGS="-j$(nproc)" $MG5_DIR/bin/mg5_aMC \

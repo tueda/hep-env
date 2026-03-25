@@ -16,6 +16,7 @@
     "autoreconf",
     "CPLUS",
     "delphes",
+    "eMELA",
     "hepmc",
     "lhapdf",
     "mg5amcnlo",
