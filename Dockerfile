@@ -19,6 +19,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
     ghostscript=9.55.* \
     gnuplot-nox=5.4.* \
     libboost-all-dev=1.74.* \
+    pigz=2.* \
     python3-lxml=4.8.* \
     python3-matplotlib=3.5.* \
     python3-pip=22.0.* \
@@ -70,6 +71,10 @@ RUN echo "n" | $MG5_DIR/bin/mg5_aMC \
 # Enable automatic Python2 -> Python3 model conversion.
 RUN echo "set auto_convert_model T" | $MG5_DIR/bin/mg5_aMC \
     && grep -q "^auto_convert_model = True" $MG5_DIR/input/mg5_configuration.txt
+
+# Enable pigz.
+RUN echo "set use_pigz True" | $MG5_DIR/bin/mg5_aMC \
+    && grep -q "^use_pigz = True" $MG5_DIR/input/mg5_configuration.txt
 
 # Install LHAPDF6.
 # Note that this step downloads HEPToolsInstallers.
