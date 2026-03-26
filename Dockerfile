@@ -28,6 +28,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
     python3-six=1.16.* \
     rsync=3.2.* \
     tcl=8.6.* \
+    texlive-latex-base=2021.* \
     vim=2:8.2.* \
     && rm -rf /var/lib/apt/lists/*
 
