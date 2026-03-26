@@ -88,7 +88,7 @@ jobs:
           retention-days: 1
 
   publish:
-    name: Publish Multi-Arch Image
+    name: Publish multi-arch image
     needs: build
     runs-on: ubuntu-24.04
     permissions:
@@ -196,3 +196,18 @@ jobs:
 
           # Inspect the pushed manifest for a quick sanity check.
           docker buildx imagetools inspect "$image:$target_tag"
+
+  cleanup:
+    name: Delete old untagged images
+    needs: publish
+    if: ${{ needs.publish.result == 'success' }}
+    runs-on: ubuntu-24.04
+    permissions:
+      packages: write
+    steps:
+      - name: Delete old untagged images from GHCR
+        uses: dataaxiom/ghcr-cleanup-action@v1
+        with:
+          keep-n-untagged: 5
+          older-than: 7 days
+          validate: true
