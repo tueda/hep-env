@@ -14,12 +14,13 @@
   "words": [
     "apptainer",
     "autoreconf",
-    "CPLUS",
+    "CPLUS_INCLUDE_PATH",
     "delphes",
     "eMELA",
     "hepmc",
     "lhapdf",
     "mg5amcnlo",
+    "pdftexcmds",
     "Takahiro",
     "tueda",
     "Ueda"
