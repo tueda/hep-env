@@ -125,6 +125,7 @@ ENV LIBRARY_PATH="$MG5_DIR/HEPTools/lhapdf6_py3/lib:$MA5_DIR/tools/fastjet/lib:$
 ENV LD_LIBRARY_PATH="$MG5_DIR/HEPTools/lhapdf6_py3/lib:$MA5_DIR/tools/fastjet/lib:$MA5_DIR/tools/delphes:$LD_LIBRARY_PATH"
 ENV PYTHONPATH="$MG5_DIR/HEPTools/lhapdf6_py3/lib/python3.10/dist-packages:$MA5_DIR/tools/delphes/python:$PYTHONPATH"
 ENV CPLUS_INCLUDE_PATH="$MA5_DIR/tools/fastjet/include:$CPLUS_INCLUDE_PATH"
+ENV ROOT_INCLUDE_PATH="$MA5_DIR/tools/delphes/external:$ROOT_INCLUDE_PATH"
 
 # Rebuild the SampleAnalyzer static library for MadAnalysis 5.
 RUN $MA5_DIR/bin/ma5 -bf \
