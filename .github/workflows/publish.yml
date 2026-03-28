@@ -60,8 +60,8 @@ jobs:
           context: .
           platforms: ${{ matrix.platform }}
           tags: ${{ steps.vars.outputs.image }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ matrix.platform }}
+          cache-to: type=gha,scope=${{ matrix.platform }},mode=max
           outputs: type=image,push-by-digest=true,name-canonical=true,push=true
 
       - name: Export digest
