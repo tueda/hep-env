@@ -120,9 +120,10 @@ RUN echo "install delphes" | $MA5_DIR/bin/ma5 -f \
 
 # Set environment variables.
 ENV DELPHES_HOME=$MA5_DIR/tools/delphes
-ENV PATH="$MG5_DIR/bin:$MG5_DIR/HEPTools/bin:$MA5_DIR/bin:$MA5_DIR/tools/fastjet/bin:$MA5_DIR/tools/delphes:$PATH"
+ENV MA5_BASE=$MA5_DIR
+ENV PATH="$MG5_DIR/bin:$MG5_DIR/HEPTools/bin:$MA5_DIR/bin:$MA5_DIR/tools/fastjet/bin:$MA5_DIR/tools/delphes:$MA5_DIR/tools/SampleAnalyzer/ExternalSymLink/Bin:$PATH"
 ENV LIBRARY_PATH="$MG5_DIR/HEPTools/lhapdf6_py3/lib:$MA5_DIR/tools/fastjet/lib:$MA5_DIR/tools/delphes:$LIBRARY_PATH"
-ENV LD_LIBRARY_PATH="$MG5_DIR/HEPTools/lhapdf6_py3/lib:$MA5_DIR/tools/fastjet/lib:$MA5_DIR/tools/delphes:$LD_LIBRARY_PATH"
+ENV LD_LIBRARY_PATH="$MG5_DIR/HEPTools/lhapdf6_py3/lib:$MA5_DIR/tools/fastjet/lib:$MA5_DIR/tools/delphes:$MA5_DIR/tools/SampleAnalyzer/Lib:$MA5_DIR/tools/SampleAnalyzer/ExternalSymLink/Lib:$LD_LIBRARY_PATH"
 ENV PYTHONPATH="$MG5_DIR/HEPTools/lhapdf6_py3/lib/python3.10/dist-packages:$MA5_DIR/tools/delphes/python:$PYTHONPATH"
 ENV CPLUS_INCLUDE_PATH="$MA5_DIR/tools/fastjet/include:$CPLUS_INCLUDE_PATH"
 ENV ROOT_INCLUDE_PATH="$MA5_DIR/tools/delphes/external:$ROOT_INCLUDE_PATH"
