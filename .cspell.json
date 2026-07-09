@@ -1,15 +1,6 @@
 {
-  "allowCompoundWords": true,
-  "dictionaries": [
-    "bash",
-    "docker",
-    "python"
-  ],
-  "ignorePaths": [
-    "**/*.patch"
-  ],
-  "language": "en",
   "version": "0.2",
+  "language": "en",
   "words": [
     "apptainer",
     "CPLUS_INCLUDE_PATH",
@@ -19,6 +10,10 @@
     "lhapdf",
     "mg5amcnlo",
     "pigz",
+    "taplo",
     "tueda"
-  ]
+  ],
+  "ignorePaths": ["**/*.patch"],
+  "allowCompoundWords": true,
+  "dictionaries": ["bash", "docker", "python"]
 }

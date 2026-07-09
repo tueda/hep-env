@@ -6,7 +6,7 @@ end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true
 
-[*.{json,sh,yml}]
+[*.{json,sh,toml,yml,yaml}]
 indent_size = 2
 indent_style = space
 
@@ -22,6 +22,6 @@ trim_trailing_whitespace = false
 indent_size = 4
 indent_style = space
 
-[{.pre-commit-config.yaml,Dockerfile}]
+[Dockerfile]
 indent_size = 4
 indent_style = space
