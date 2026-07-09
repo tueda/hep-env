@@ -87,6 +87,27 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+      - name: Add image environment Summary
+        run: |
+          output_file="$(mktemp)"
+
+          docker run --rm \
+            --platform '${{ matrix.platform }}' \
+            -v "$PWD/scripts:/scripts:ro" \
+            '${{ steps.vars.outputs.image }}@${{ steps.build.outputs.digest }}' \
+            bash /scripts/print-env-versions.sh >"$output_file"
+
+          {
+            echo '## Image Environment Summary'
+            echo
+            echo "- Platform: \`${{ matrix.platform }}\`"
+            echo "- Digest: \`${{ steps.build.outputs.digest }}\`"
+            echo
+            echo '```text'
+            cat "$output_file"
+            echo '```'
+          } >>"$GITHUB_STEP_SUMMARY"
+
   publish:
     name: Publish multi-arch image
     needs: build
