@@ -3,9 +3,16 @@ set -euo pipefail
 
 try_run() {
   local out
-  if out="$("$@" 2>/dev/null | head -1)"; then
-    echo "'$out'"
+  IFS= read -r out < <("$@" 2>/dev/null) || [ -n "$out" ] || return 0
+  if [[ "$out" =~ ^[A-Za-z0-9._,-]*$ ]]; then
+    printf '%s\n' "$out"
+  else
+    printf "'%s'\n" "$out"
   fi
+}
+
+first_line() {
+  sed -n '1p'
 }
 
 os_version() {
@@ -24,6 +31,10 @@ triplet() {
   gcc -dumpmachine
 }
 
+bash_version() {
+  echo "$BASH_VERSION"
+}
+
 gcc_version() {
   gcc -dumpfullversion
 }
@@ -36,8 +47,90 @@ gfortran_version() {
   gfortran -dumpfullversion
 }
 
+clang_version() {
+  clang -dumpversion
+}
+
+clangxx_version() {
+  clang++ -dumpversion
+}
+
+flang_version() {
+  flang -dumpversion
+}
+
+perl_version() {
+  perl -e 'printf "%vd\n", $^V'
+}
+
 python3_version() {
   python3 --version | awk '{print $2}'
+}
+
+pip3_library_versions() {
+  python3 -m pip list 2>/dev/null |
+    grep -E '^(awkward|Cython|ipython|matplotlib|networkx|numba|numpy|pandas|polars|scikit-image|scikit-learn|scipy|seaborn|uproot|xarray|zarr) ' |
+    awk '{gsub("-", "_", $1); $1=tolower($1); print "python3_" $1 "_version=" $2}'
+}
+
+ruby_version() {
+  ruby --version | awk '{print $2}'
+}
+
+node_version() {
+  node --version | sed 's/^v//'
+}
+
+rustc_version() {
+  rustc --version | awk '{print $2}'
+}
+
+go_version() {
+  go version | awk '{print $3}' | sed 's/^go//'
+}
+
+julia_version() {
+  julia --version | sed 's/^.*version//i' | awk '{print $1}'
+}
+
+curl_version() {
+  curl --version | first_line | awk '{print $2}'
+}
+
+wget_version() {
+  wget --version | first_line | awk '{print $3}'
+}
+
+git_version() {
+  git --version | sed 's/^.*version//i' | awk '{print $1}'
+}
+
+make_version() {
+  make --version | first_line | awk '{print $3}'
+}
+
+cmake_version() {
+  cmake --version | first_line | sed 's/^.*version//i' | awk '{print $1}'
+}
+
+ninja_version() {
+  ninja --version
+}
+
+nano_version() {
+  nano --version | first_line | sed 's/^.*version//i' | awk '{print $1}'
+}
+
+vim_version() {
+  vim --version | first_line | awk '{print $5}'
+}
+
+nvim_version() {
+  nvim --version | first_line | awk '{print $2}' | sed 's/^v//'
+}
+
+emacs_version() {
+  emacs --version | first_line | awk '{print $3}'
 }
 
 root_version() {
@@ -45,7 +138,7 @@ root_version() {
 }
 
 mg5_aMC_version() {
-  echo 'exit' | mg5_aMC | grep -i version | sed 's/^.*version//i' | awk '{print $1}'
+  echo 'exit' | mg5_aMC | grep -i version | first_line | sed 's/^.*version//i' | awk '{print $1}'
 }
 
 lhapdf_version() {
@@ -72,10 +165,30 @@ for f in \
   os_version \
   os_arch \
   triplet \
+  bash_version \
   gcc_version \
   gxx_version \
   gfortran_version \
+  clang_version \
+  clangxx_version \
+  flang_version \
+  perl_version \
   python3_version \
+  ruby_version \
+  node_version \
+  rustc_version \
+  go_version \
+  julia_version \
+  curl_version \
+  wget_version \
+  git_version \
+  make_version \
+  cmake_version \
+  ninja_version \
+  nano_version \
+  vim_version \
+  nvim_version \
+  emacs_version \
   root_version \
   mg5_aMC_version \
   lhapdf_version \
@@ -83,5 +196,11 @@ for f in \
   pythia8_version \
   fastjet_version \
   ma5_version; do
-  echo "$f=$(try_run $f)"
+  v=$(try_run "$f")
+  if [ -n "$v" ]; then
+    echo "$f=$v"
+    if [ "$f" = "python3_version" ]; then
+      pip3_library_versions || :
+    fi
+  fi
 done
