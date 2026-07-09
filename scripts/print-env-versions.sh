@@ -1,6 +1,24 @@
 #!/bin/bash
 set -euo pipefail
 
+# spell-checker: ignore clangxx
+# spell-checker: ignore Cython
+# spell-checker: ignore eMELA
+# spell-checker: ignore flang
+# spell-checker: ignore gfortran
+# spell-checker: ignore gsub
+# spell-checker: ignore ipykernel
+# spell-checker: ignore IPython
+# spell-checker: ignore LHAPDF
+# spell-checker: ignore NetworkX
+# spell-checker: ignore Numba
+# spell-checker: ignore NumPy
+# spell-checker: ignore rustc
+# spell-checker: ignore SciPy
+# spell-checker: ignore tolower
+# spell-checker: ignore xarray
+# spell-checker: ignore Zarr
+
 try_run() {
   local out
   IFS= read -r out < <("$@" 2>/dev/null) || [ -n "$out" ] || return 0
@@ -69,7 +87,7 @@ python3_version() {
 
 pip3_library_versions() {
   python3 -m pip list 2>/dev/null |
-    grep -E '^(awkward|Cython|ipython|matplotlib|networkx|numba|numpy|pandas|polars|scikit-image|scikit-learn|scipy|seaborn|uproot|xarray|zarr) ' |
+    grep -E '^(awkward|Cython|hepstats|ipykernel|ipython|matplotlib|networkx|numba|numpy|pandas|polars|scikit-image|scikit-learn|scipy|seaborn|statsmodels|uproot|vector|xarray|zarr) ' |
     awk '{gsub("-", "_", $1); $1=tolower($1); print "python3_" $1 "_version=" $2}'
 }
 

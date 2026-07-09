@@ -2,7 +2,6 @@
   "allowCompoundWords": true,
   "dictionaries": [
     "bash",
-    "cpp",
     "docker",
     "python"
   ],
@@ -13,22 +12,13 @@
   "version": "0.2",
   "words": [
     "apptainer",
-    "autoreconf",
-    "clangxx",
     "CPLUS_INCLUDE_PATH",
     "delphes",
     "eMELA",
-    "flang",
-    "gfortran",
-    "gsub",
     "hepmc",
     "lhapdf",
     "mg5amcnlo",
-    "pdftexcmds",
     "pigz",
-    "rustc",
-    "Takahiro",
-    "tueda",
-    "Ueda"
+    "tueda"
   ]
 }
