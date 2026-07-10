@@ -1,20 +1,32 @@
 #!/bin/bash
 set -euo pipefail
 
+# spell-checker: ignore -dumpfullversion
+# spell-checker: ignore -dumpmachine
+# spell-checker: ignore -dumpversion
 # spell-checker: ignore clangxx
 # spell-checker: ignore Cython
+# spell-checker: ignore Delphes
 # spell-checker: ignore eMELA
+# spell-checker: ignore FastJet
 # spell-checker: ignore flang
 # spell-checker: ignore gfortran
 # spell-checker: ignore gsub
+# spell-checker: ignore hepstats
 # spell-checker: ignore ipykernel
 # spell-checker: ignore IPython
 # spell-checker: ignore LHAPDF
+# spell-checker: ignore Matplotlib
 # spell-checker: ignore NetworkX
 # spell-checker: ignore Numba
 # spell-checker: ignore NumPy
 # spell-checker: ignore rustc
+# spell-checker: ignore scikit-image
+# spell-checker: ignore scikit-learn
 # spell-checker: ignore SciPy
+# spell-checker: ignore seaborn
+# spell-checker: ignore statsmodels
+# spell-checker: ignore SymPy
 # spell-checker: ignore tolower
 # spell-checker: ignore xarray
 # spell-checker: ignore Zarr
@@ -87,7 +99,7 @@ python3_version() {
 
 pip3_library_versions() {
   python3 -m pip list 2>/dev/null |
-    grep -E '^(awkward|Cython|hepstats|ipykernel|ipython|matplotlib|networkx|numba|numpy|pandas|polars|scikit-image|scikit-learn|scipy|seaborn|statsmodels|uproot|vector|xarray|zarr) ' |
+    grep -E '^(awkward|Cython|hepstats|ipykernel|ipython|matplotlib|networkx|numba|numpy|pandas|polars|scikit-image|scikit-learn|scipy|seaborn|statsmodels|sympy|uproot|vector|xarray|zarr) ' |
     awk '{gsub("-", "_", $1); $1=tolower($1); print "python3_" $1 "_version=" $2}'
 }
 
@@ -131,6 +143,26 @@ cmake_version() {
   cmake --version | first_line | sed 's/^.*version//i' | awk '{print $1}'
 }
 
+meson_version() {
+  meson --version
+}
+
+autoconf_version() {
+  autoconf --version | first_line | awk '{print $4}'
+}
+
+automake_version() {
+  automake --version | first_line | awk '{print $4}'
+}
+
+libtool_version() {
+  libtool --version | first_line | awk '{print $4}'
+}
+
+m4_version() {
+  m4 --version | first_line | awk '{print $4}'
+}
+
 ninja_version() {
   ninja --version
 }
@@ -149,6 +181,10 @@ nvim_version() {
 
 emacs_version() {
   emacs --version | first_line | awk '{print $3}'
+}
+
+form_version() {
+  form -v | first_line | awk '{print $2}'
 }
 
 root_version() {
@@ -173,6 +209,10 @@ pythia8_version() {
 
 fastjet_version() {
   fastjet-config --version
+}
+
+delphes_version() {
+  awk '/^[0-9]+(\.[0-9]+)*:/ { sub(/:.*/, ""); print; exit }' "$(dirname "$(command -v DelphesHepMC3)")/CHANGELOG"
 }
 
 ma5_version() {
@@ -202,17 +242,24 @@ for f in \
   git_version \
   make_version \
   cmake_version \
+  meson_version \
   ninja_version \
+  autoconf_version \
+  automake_version \
+  libtool_version \
+  m4_version \
   nano_version \
   vim_version \
   nvim_version \
   emacs_version \
+  form_version \
   root_version \
   mg5_aMC_version \
   lhapdf_version \
   eMELA_version \
   pythia8_version \
   fastjet_version \
+  delphes_version \
   ma5_version; do
   v=$(try_run "$f")
   if [ -n "$v" ]; then
