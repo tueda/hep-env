@@ -1,0 +1,40 @@
+name: Delete Image Tag
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: GHCR tag to delete
+        required: true
+        type: string
+      dry_run:
+        description: Show what would be deleted without making changes
+        required: true
+        default: true
+        type: boolean
+
+jobs:
+  delete:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ghcr-package
+      # queue: max  # See: https://github.com/rhysd/actionlint/issues/657
+    permissions:
+      packages: write
+    steps:
+      - name: Validate tag
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$TAG" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]; then
+            echo "::error::Invalid Docker tag: $TAG"
+            exit 1
+          fi
+
+      - name: Delete image tag
+        uses: dataaxiom/ghcr-cleanup-action@v1
+        with:
+          delete-tags: ${{ inputs.tag }}
+          dry-run: ${{ inputs.dry_run }}

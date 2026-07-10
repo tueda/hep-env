@@ -1,0 +1,23 @@
+name: Cleanup Untagged Images
+
+on:
+  schedule:
+    - cron: 0 0 * * *  # daily
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    name: Delete old untagged images
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ghcr-package
+      # queue: max  # See: https://github.com/rhysd/actionlint/issues/657
+    permissions:
+      packages: write
+    steps:
+      - name: Delete old untagged images from GHCR
+        uses: dataaxiom/ghcr-cleanup-action@v1
+        with:
+          keep-n-untagged: 1
+          older-than: 7 days
+          validate: true

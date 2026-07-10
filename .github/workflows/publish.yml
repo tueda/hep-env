@@ -1,11 +1,16 @@
-name: Build and Publish Docker Image
+name: Build and Publish Image
 
 on:
   push:
   workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: >-
+    ${{
+      github.event.deleted
+      && format('deleted-push-{0}', github.run_id)
+      || format('{0}-{1}', github.ref_type, github.ref_name)
+    }}
   cancel-in-progress: true
 
 env:
@@ -15,6 +20,7 @@ env:
 jobs:
   build:
     name: Build on ${{ matrix.platform }}
+    if: github.event_name != 'push' || github.event.deleted != true
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -34,6 +40,8 @@ jobs:
       - name: Prepare variables
         id: vars
         run: |
+          set -euo pipefail
+
           # image: lowercased image reference (registry/repository).
           echo "image=$(echo '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}' \
             | tr '[:upper:]' '[:lower:]')" >>"$GITHUB_OUTPUT"
@@ -67,13 +75,14 @@ jobs:
       - name: Export digest
         run: |
           set -euo pipefail
+
           mkdir -p "$RUNNER_TEMP/digests"
           digest='${{ steps.build.outputs.digest }}'
           case "$digest" in
             sha256:*)
               ;;
             *)
-              echo "Unexpected digest: $digest"
+              echo "::error::Unexpected digest: $digest"
               exit 1
               ;;
           esac
@@ -89,6 +98,8 @@ jobs:
 
       - name: Add image environment Summary
         run: |
+          set -euo pipefail
+
           output_file="$(mktemp)"
 
           docker run --rm \
@@ -111,7 +122,10 @@ jobs:
   publish:
     name: Publish multi-arch image
     needs: build
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ghcr-package
+      # queue: max  # See: https://github.com/rhysd/actionlint/issues/657
     permissions:
       contents: read
       packages: write
@@ -119,6 +133,8 @@ jobs:
       - name: Prepare variables
         id: vars
         run: |
+          set -euo pipefail
+
           # image: lowercased image reference (registry/repository).
           echo "image=$(echo '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}' \
             | tr '[:upper:]' '[:lower:]')" >>"$GITHUB_OUTPUT"
@@ -170,7 +186,7 @@ jobs:
 
       - name: Create manifest and tags
         working-directory: ${{ runner.temp }}/digests
-        run: |
+        run: |-
           set -euo pipefail
           shopt -s nullglob
 
@@ -186,7 +202,7 @@ jobs:
           # Guard against publishing an empty manifest when artifacts
           # are missing.
           if [[ ${#sources[@]} -eq 0 ]]; then
-            echo "No digest files found in $(pwd)"
+            echo "::error::No digest files found in $(pwd)"
             ls -la
             exit 1
           fi
@@ -217,18 +233,3 @@ jobs:
 
           # Inspect the pushed manifest for a quick sanity check.
           docker buildx imagetools inspect "$image:$target_tag"
-
-  cleanup:
-    name: Delete old untagged images
-    needs: publish
-    if: ${{ needs.publish.result == 'success' }}
-    runs-on: ubuntu-24.04
-    permissions:
-      packages: write
-    steps:
-      - name: Delete old untagged images from GHCR
-        uses: dataaxiom/ghcr-cleanup-action@v1
-        with:
-          keep-n-untagged: 5
-          older-than: 7 days
-          validate: true
