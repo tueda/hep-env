@@ -25,11 +25,11 @@ jobs:
           set -euo pipefail
 
           ref_name=$REF_NAME
-          ref_tag="$(printf '%s' "$ref_name" \
+          ref_tag="$(echo "$ref_name" \
             | tr '[:upper:]' '[:lower:]' \
             | sed -E 's/[^a-z0-9_.-]+/-/g; s/^[.-]+//; s/[.-]+$//; s/-{2,}/-/g')"
           ref_tag="${ref_tag:0:128}"
-          ref_tag="$(printf '%s' "$ref_tag" | sed -E 's/[.-]+$//')"
+          ref_tag="$(echo "$ref_tag" | sed -E 's/[.-]+$//')"
           if [[ -z "$ref_tag" ]]; then
             echo "::error::Cannot derive an image tag from branch: $REF_NAME"
             exit 1

@@ -11,9 +11,9 @@
     "mbake",
     "mg5amcnlo",
     "pigz",
-    "taplo",
     "tombi",
-    "tueda"
+    "tueda",
+    "zizmor"
   ],
   "ignorePaths": ["**/*.patch"],
   "allowCompoundWords": true,

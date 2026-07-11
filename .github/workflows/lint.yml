@@ -6,14 +6,18 @@ on:
   schedule:
     - cron: 0 0 1 * *  # monthly
 
+permissions:
+  contents: read
+
 jobs:
   gitlint:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
-      # for pip cache
       - name: Create requirements.txt
         run: echo 'gitlint' >requirements.txt
 
@@ -24,7 +28,7 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: pip install gitlint
+        run: pip install -r requirements.txt
 
       - name: Run gitlint
         run: gitlint
@@ -34,16 +38,8 @@ jobs:
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v7
-
-      # for pip cache
-      - name: Create requirements.txt
-        run: echo 'pre-commit' >requirements.txt
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
         with:
-          python-version: '3.12'
-          cache: pip
+          persist-credentials: false
 
       - name: Run pre-commit
-        uses: pre-commit/action@v3.0.1
+        uses: tox-dev/action-pre-commit-uv@v1

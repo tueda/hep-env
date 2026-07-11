@@ -36,6 +36,8 @@ jobs:
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Prepare variables
         id: vars
@@ -43,7 +45,7 @@ jobs:
           set -euo pipefail
 
           # image: lowercased image reference (registry/repository).
-          echo "image=$(echo '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}' \
+          echo "image=$(echo "$REGISTRY/$IMAGE_NAME" \
             | tr '[:upper:]' '[:lower:]')" >>"$GITHUB_OUTPUT"
 
           # platform_pair: artifact-safe platform key.
@@ -73,19 +75,17 @@ jobs:
           outputs: type=image,push-by-digest=true,name-canonical=true,push=true
 
       - name: Export digest
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
         run: |
           set -euo pipefail
 
           mkdir -p "$RUNNER_TEMP/digests"
-          digest='${{ steps.build.outputs.digest }}'
-          case "$digest" in
-            sha256:*)
-              ;;
-            *)
-              echo "::error::Unexpected digest: $digest"
-              exit 1
-              ;;
-          esac
+          digest=$DIGEST
+          if [[ ! $digest =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "::error::Unexpected digest: $digest"
+            exit 1
+          fi
           touch "$RUNNER_TEMP/digests/${digest#sha256:}"
 
       - name: Upload digest artifact
@@ -97,22 +97,26 @@ jobs:
           retention-days: 1
 
       - name: Add image environment Summary
+        env:
+          PLATFORM: ${{ matrix.platform }}
+          IMAGE: ${{ steps.vars.outputs.image }}
+          DIGEST: ${{ steps.build.outputs.digest }}
         run: |
           set -euo pipefail
 
           output_file="$(mktemp)"
 
           docker run --rm \
-            --platform '${{ matrix.platform }}' \
+            --platform "$PLATFORM" \
             -v "$PWD/scripts:/scripts:ro" \
-            '${{ steps.vars.outputs.image }}@${{ steps.build.outputs.digest }}' \
+            "$IMAGE@$DIGEST" \
             bash /scripts/print-env-versions.sh >"$output_file"
 
           {
             echo '## Image Environment Summary'
             echo
-            echo "- Platform: \`${{ matrix.platform }}\`"
-            echo "- Digest: \`${{ steps.build.outputs.digest }}\`"
+            echo "- Platform: \`$PLATFORM\`"
+            echo "- Digest: \`$DIGEST\`"
             echo
             echo '```text'
             cat "$output_file"
@@ -132,27 +136,29 @@ jobs:
     steps:
       - name: Prepare variables
         id: vars
+        env:
+          REF_NAME: ${{ github.ref_name }}
         run: |
           set -euo pipefail
 
           # image: lowercased image reference (registry/repository).
-          echo "image=$(echo '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}' \
+          echo "image=$(echo "$REGISTRY/$IMAGE_NAME" \
             | tr '[:upper:]' '[:lower:]')" >>"$GITHUB_OUTPUT"
 
           # ref_tag: Docker-tag-safe ref derived from ref_name.
           # NOTE: Different branch names can normalize to the same ref_tag
           # (for example, feature/foo and feature-foo).
-          ref_name='${{ github.ref_name }}'
+          ref_name=$REF_NAME
           # 1) Normalize case and characters: lowercase and replace
           #    invalid chars with '-'.
           #    trim leading/trailing separators, and collapse repeated '-'.
-          ref_tag="$(printf '%s' "$ref_name" \
+          ref_tag="$(echo "$ref_name" \
             | tr '[:upper:]' '[:lower:]' \
             | sed -E 's/[^a-z0-9_.-]+/-/g; s/^[.-]+//; s/[.-]+$//; s/-{2,}/-/g')"
           # 2) Cap to Docker tag max length.
           ref_tag="${ref_tag:0:128}"
           # 3) Re-trim trailing separators after truncation.
-          ref_tag="$(printf '%s' "$ref_tag" | sed -E 's/[.-]+$//')"
+          ref_tag="$(echo "$ref_tag" | sed -E 's/[.-]+$//')"
           # 4) Fallback when normalization results in an empty tag.
           if [[ -z "$ref_tag" ]]; then
             ref_tag="sha-${GITHUB_SHA::12}"
@@ -186,12 +192,17 @@ jobs:
 
       - name: Create manifest and tags
         working-directory: ${{ runner.temp }}/digests
+        env:
+          IMAGE: ${{ steps.vars.outputs.image }}
+          REF_TAG: ${{ steps.vars.outputs.ref_tag }}
+          WITH_LATEST: ${{ steps.vars.outputs.with_latest }}
         run: |-
           set -euo pipefail
           shopt -s nullglob
 
-          image='${{ steps.vars.outputs.image }}'
-          ref_tag='${{ steps.vars.outputs.ref_tag }}'
+          image=$IMAGE
+          ref_tag=$REF_TAG
+          with_latest=$WITH_LATEST
 
           # Build source image list from per-platform digest files.
           sources=()
@@ -209,11 +220,11 @@ jobs:
 
           # For Git tags: publish version tag, and optionally latest.
           # For branches: publish branch-derived tag only.
-          if [[ '${{ github.ref_type }}' == 'tag' ]]; then
+          if [[ "$GITHUB_REF_TYPE" == 'tag' ]]; then
             version="$ref_tag"
             target_tag="$version"
 
-            if [[ '${{ steps.vars.outputs.with_latest }}' == 'true' ]]; then
+            if [[ "$with_latest" == 'true' ]]; then
               docker buildx imagetools create \
                 -t "$image:$version" \
                 -t "$image:latest" \
