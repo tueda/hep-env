@@ -99,7 +99,7 @@ python3_version() {
 
 pip3_library_versions() {
   python3 -m pip list 2>/dev/null |
-    grep -E '^(awkward|Cython|hepstats|ipykernel|ipython|matplotlib|networkx|numba|numpy|pandas|polars|scikit-image|scikit-learn|scipy|seaborn|statsmodels|sympy|uproot|vector|xarray|zarr) ' |
+    grep -Ei '^(awkward|cython|hepstats|ipykernel|ipython|matplotlib|networkx|numba|numpy|pandas|polars|scikit-image|scikit-learn|scipy|seaborn|statsmodels|sympy|uproot|vector|xarray|zarr) ' |
     awk '{gsub("-", "_", $1); $1=tolower($1); print "python3_" $1 "_version=" $2}'
 }
 
