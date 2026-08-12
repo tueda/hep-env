@@ -4,6 +4,8 @@ APPTAINER_IMAGE = $(DATA_DIR)/hep-env-local.sif
 APPTAINER_IMAGE_STAMP = $(APPTAINER_IMAGE).docker-image-id
 DOCKER_DATA = $(DATA_DIR)/docker
 APPTAINER_DATA = $(DATA_DIR)/apptainer
+DOCKER_DATA_STAMP = $(DOCKER_DATA)/.hep-env-initialized
+APPTAINER_DATA_STAMP = $(APPTAINER_DATA)/.hep-env-initialized
 
 .PHONY: update-docker update-apptainer run-docker run-apptainer
 
@@ -31,14 +33,24 @@ $(DATA_DIR):
 	mkdir -p $(DATA_DIR)
 	echo '*' >$(DATA_DIR)/.gitignore
 
-$(DOCKER_DATA): update-docker $(DATA_DIR)
+$(DOCKER_DATA_STAMP): | update-docker $(DATA_DIR)
+	@if [ -e "$(DOCKER_DATA)" ] || [ -L "$(DOCKER_DATA)" ]; then \
+		echo "$(DOCKER_DATA) exists without an initialization stamp" >&2; \
+		exit 1; \
+	fi
 	docker run --rm -v "$(PWD):/work" $(DOCKER_IMAGE_TAG) cp -r /data $(DOCKER_DATA)
+	@touch "$@"
 
-$(APPTAINER_DATA): update-apptainer $(DATA_DIR)
+$(APPTAINER_DATA_STAMP): | update-apptainer $(DATA_DIR)
+	@if [ -e "$(APPTAINER_DATA)" ] || [ -L "$(APPTAINER_DATA)" ]; then \
+		echo "$(APPTAINER_DATA) exists without an initialization stamp" >&2; \
+		exit 1; \
+	fi
 	apptainer exec --bind "$(PWD):/work" $(APPTAINER_IMAGE) bash -c "cp -r /data $(APPTAINER_DATA)"
+	@touch "$@"
 
-run-docker: update-docker $(DOCKER_DATA)
+run-docker: update-docker $(DOCKER_DATA_STAMP)
 	docker run -it --rm -v "$(PWD):/work" -v "$(PWD)/$(DOCKER_DATA):/data" $(DOCKER_IMAGE_TAG)
 
-run-apptainer: update-apptainer $(APPTAINER_DATA)
+run-apptainer: update-apptainer $(APPTAINER_DATA_STAMP)
 	apptainer shell --bind "$(PWD):/work" --bind "$(PWD)/$(APPTAINER_DATA):/data" $(APPTAINER_IMAGE)
