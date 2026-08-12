@@ -41,4 +41,4 @@ run-docker: update-docker $(DOCKER_DATA)
 	docker run -it --rm -v "$(PWD):/work" -v "$(PWD)/$(DOCKER_DATA):/data" $(DOCKER_IMAGE_TAG)
 
 run-apptainer: update-apptainer $(APPTAINER_DATA)
-	apptainer shell --bind "$(PWD):/work" $(APPTAINER_IMAGE)
+	apptainer shell --bind "$(PWD):/work" --bind "$(PWD)/$(APPTAINER_DATA):/data" $(APPTAINER_IMAGE)
