@@ -1,0 +1,29 @@
+From 6b16dd5cec51415575a3f7736bf198e0173c784b Mon Sep 17 00:00:00 2001
+From: Takahiro Ueda <t.ueda.od@juntendo.ac.jp>
+Date: Thu, 20 Aug 2026 16:19:43 +0900
+Subject: [PATCH] fix(madanalysis5): allow output after the success marker
+
+Spey 0.2.7 prints a citation reminder after installMadAnalysis5.py
+writes its success marker, so the marker is no longer on the final log
+line.
+---
+ HEPToolInstaller.py | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/HEPToolInstaller.py b/HEPToolInstaller.py
+index d091953..5975ed1 100755
+--- a/HEPToolInstaller.py
++++ b/HEPToolInstaller.py
+@@ -1747,7 +1747,8 @@ def check_successful_installation(target):
+     
+     # Special check for MadAnalysis installation
+     if target=='madanalysis5':
+-        return 'INSTALLATION STATUS: SUCCESS' in open(pjoin(_HepTools['madanalysis5']['install_path'],'madanalysis5_install.log'),'r').readlines()[-1]
++        with open(pjoin(_HepTools['madanalysis5']['install_path'], 'madanalysis5_install.log'), 'r') as stream:
++            return any('INSTALLATION STATUS: SUCCESS' in line for line in stream)
+     if target=='rosetta':
+        import sys
+        sys.path.append(pjoin(_HepTools[target]['install_path']))
+-- 
+2.34.1
+
