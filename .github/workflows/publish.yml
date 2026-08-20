@@ -88,6 +88,183 @@ jobs:
           fi
           touch "$RUNNER_TEMP/digests/${digest#sha256:}"
 
+      - name: Pull the exact image
+        id: exact-image
+        env:
+          PLATFORM: ${{ matrix.platform }}
+          IMAGE: ${{ steps.vars.outputs.image }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+
+          image_ref="$IMAGE@$DIGEST"
+          docker pull --platform "$PLATFORM" "$image_ref"
+          docker image inspect \
+            --format '{{range .RepoDigests}}{{println .}}{{end}}' \
+            "$image_ref" | grep -Fx "$image_ref"
+          echo "image_id=$(docker image inspect \
+            --format '{{.Id}}' "$image_ref")" >>"$GITHUB_OUTPUT"
+
+      - name: Run Docker physics smoke test
+        id: docker-smoke
+        env:
+          DOCKER_IMAGE: >-
+            ${{ steps.vars.outputs.image }}@${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+
+          started_at=$SECONDS
+          ./scripts/smoke-test-docker.sh
+          echo "seconds=$((SECONDS - started_at))" >>"$GITHUB_OUTPUT"
+
+      - name: Tag the exact image for Apptainer
+        id: local-image
+        env:
+          IMAGE: ${{ steps.vars.outputs.image }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+          EXPECTED_IMAGE_ID: ${{ steps.exact-image.outputs.image_id }}
+          PLATFORM_PAIR: ${{ steps.vars.outputs.platform_pair }}
+        run: |
+          set -euo pipefail
+
+          local_tag="hep-env-smoke:$PLATFORM_PAIR-${GITHUB_SHA::12}"
+          docker tag "$IMAGE@$DIGEST" "$local_tag"
+          actual_image_id=$(docker image inspect \
+            --format '{{.Id}}' "$local_tag")
+          if [[ $actual_image_id != "$EXPECTED_IMAGE_ID" ]]; then
+            echo "::error::Temporary tag does not match the tested image"
+            exit 1
+          fi
+          echo "tag=$local_tag" >>"$GITHUB_OUTPUT"
+
+      - name: Install Apptainer
+        id: install-apptainer
+        run: |
+          set -euo pipefail
+
+          started_at=$SECONDS
+          sudo add-apt-repository -y ppa:apptainer/ppa
+          sudo apt-get install -y apptainer
+          apptainer_version=$(apptainer --version)
+          echo "$apptainer_version"
+          {
+            echo "version=$apptainer_version"
+            echo "seconds=$((SECONDS - started_at))"
+          } >>"$GITHUB_OUTPUT"
+
+      - name: Convert the exact image and initialize Apptainer data
+        id: sif
+        env:
+          LOCAL_IMAGE: ${{ steps.local-image.outputs.tag }}
+          PLATFORM_PAIR: ${{ steps.vars.outputs.platform_pair }}
+        run: |
+          set -euo pipefail
+
+          smoke_root="$RUNNER_TEMP/hep-env-smoke-$PLATFORM_PAIR"
+          sif_path="$smoke_root/hep-env.sif"
+          work_dir="$smoke_root/work"
+          data_dir="$smoke_root/data"
+          mkdir -p "$smoke_root" "$work_dir"
+
+          started_at=$SECONDS
+          apptainer build "$sif_path" "docker-daemon://$LOCAL_IMAGE"
+          conversion_seconds=$((SECONDS - started_at))
+
+          apptainer exec \
+            --cleanenv \
+            --no-home \
+            --net --network none \
+            --bind "$smoke_root:/work" \
+            "$sif_path" \
+            cp -r /data /work/data
+          touch "$data_dir/.hep-env-initialized"
+
+          {
+            echo "sif_path=$sif_path"
+            echo "work_dir=$work_dir"
+            echo "data_dir=$data_dir"
+            echo "seconds=$conversion_seconds"
+          } >>"$GITHUB_OUTPUT"
+
+      - name: Run Apptainer physics smoke test
+        id: apptainer-smoke
+        env:
+          WORK_DIR: ${{ steps.sif.outputs.work_dir }}
+          APPTAINER_DATA_DIR: ${{ steps.sif.outputs.data_dir }}
+          APPTAINER_IMAGE: ${{ steps.sif.outputs.sif_path }}
+          SMOKE_KEEP_WORK: 1
+        run: |
+          set -euo pipefail
+
+          started_at=$SECONDS
+          ./scripts/smoke-test-apptainer.sh
+          echo "seconds=$((SECONDS - started_at))" >>"$GITHUB_OUTPUT"
+
+      - name: Prepare smoke-test artifact
+        id: smoke-artifact-files
+        env:
+          WORK_DIR: ${{ steps.sif.outputs.work_dir }}
+          PLATFORM_PAIR: ${{ steps.vars.outputs.platform_pair }}
+        run: |
+          set -euo pipefail
+
+          smoke_dir="$WORK_DIR/hep-env-smoke"
+          plot_dir="$smoke_dir/ma5-output/Output/HTML/MadAnalysis5job_0"
+          histogram_file="$smoke_dir/ma5-output/Output/SAF/_ttbar/"
+          histogram_file+="MadAnalysis5job_0/Histograms/histos.saf"
+          artifact_dir="$RUNNER_TEMP/smoke-artifact-$PLATFORM_PAIR"
+          mkdir -p "$artifact_dir"
+          install -m 0644 "$plot_dir/selection_0.png" \
+            "$artifact_dir/N-j.png"
+          install -m 0644 "$plot_dir/selection_1.png" \
+            "$artifact_dir/leading-jet-pt.png"
+          install -m 0644 "$plot_dir/selection_2.png" \
+            "$artifact_dir/MET.png"
+          install -m 0644 "$histogram_file" "$artifact_dir/histos.saf"
+          install -m 0644 "$smoke_dir/smoke.log" \
+            "$artifact_dir/smoke.log"
+          echo "path=$artifact_dir" >>"$GITHUB_OUTPUT"
+
+      - name: Upload smoke-test artifact
+        id: upload-smoke-artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-${{ steps.vars.outputs.platform_pair }}
+          path: ${{ steps.smoke-artifact-files.outputs.path }}
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Add smoke-test summary
+        env:
+          PLATFORM: ${{ matrix.platform }}
+          WORK_DIR: ${{ steps.sif.outputs.work_dir }}
+          DOCKER_SECONDS: ${{ steps.docker-smoke.outputs.seconds }}
+          APPTAINER_INSTALL_SECONDS: >-
+            ${{ steps.install-apptainer.outputs.seconds }}
+          APPTAINER_VERSION: ${{ steps.install-apptainer.outputs.version }}
+          SIF_SECONDS: ${{ steps.sif.outputs.seconds }}
+          APPTAINER_SECONDS: ${{ steps.apptainer-smoke.outputs.seconds }}
+          ARTIFACT_URL: ${{ steps.upload-smoke-artifact.outputs.artifact-url }}
+        run: |
+          set -euo pipefail
+
+          {
+            echo '## HEP smoke test'
+            echo
+            echo "- Platform: \`$PLATFORM\`"
+            echo "- Apptainer: \`$APPTAINER_VERSION\`"
+            echo "- [Plots, SAF, and diagnostics]($ARTIFACT_URL)"
+            echo
+            cat "$WORK_DIR/hep-env-smoke/summary.md"
+            echo
+            echo '| Timing | Seconds |'
+            echo '| --- | ---: |'
+            echo "| Docker physics smoke | $DOCKER_SECONDS |"
+            echo "| Apptainer installation | $APPTAINER_INSTALL_SECONDS |"
+            echo "| Docker image to SIF | $SIF_SECONDS |"
+            echo "| Apptainer physics smoke | $APPTAINER_SECONDS |"
+          } >>"$GITHUB_STEP_SUMMARY"
+
       - name: Upload digest artifact
         uses: actions/upload-artifact@v7
         with:
