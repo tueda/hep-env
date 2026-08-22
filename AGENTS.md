@@ -90,9 +90,9 @@ be run with Docker or Apptainer.
 - Before changing a remote ref, inspect the workflows triggered by that
   operation and explain their automated external effects. Currently, pushing
   a branch or tag publishes an image to GHCR; pushing a tag matching `^v[0-9]`
-  also updates `latest`; and deleting a remote branch deletes its
-  branch-derived GHCR tag. If the request does not clearly authorize these
-  effects, ask for confirmation before changing the ref.
+  also updates `latest` and creates a GitHub Release; and deleting a remote
+  branch deletes its branch-derived GHCR tag. If the request does not clearly
+  authorize these effects, ask for confirmation before changing the ref.
 
 ## Repository Guide
 

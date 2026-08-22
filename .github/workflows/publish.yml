@@ -265,23 +265,18 @@ jobs:
             echo "| Apptainer physics smoke | $APPTAINER_SECONDS |"
           } >>"$GITHUB_STEP_SUMMARY"
 
-      - name: Upload digest artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: digests-${{ steps.vars.outputs.platform_pair }}
-          path: ${{ runner.temp }}/digests/*
-          if-no-files-found: error
-          retention-days: 1
-
       - name: Add image environment Summary
         env:
           PLATFORM: ${{ matrix.platform }}
+          PLATFORM_PAIR: ${{ steps.vars.outputs.platform_pair }}
           IMAGE: ${{ steps.vars.outputs.image }}
           DIGEST: ${{ steps.build.outputs.digest }}
         run: |
           set -euo pipefail
 
-          output_file="$(mktemp)"
+          output_dir="$RUNNER_TEMP/image-environment"
+          output_file="$output_dir/$PLATFORM_PAIR.txt"
+          mkdir -p "$output_dir"
 
           docker run --rm \
             --platform "$PLATFORM" \
@@ -300,10 +295,24 @@ jobs:
             echo '```'
           } >>"$GITHUB_STEP_SUMMARY"
 
+      - name: Upload publish inputs artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: publish-inputs-${{ steps.vars.outputs.platform_pair }}
+          path: |
+            ${{ runner.temp }}/digests
+            ${{ runner.temp }}/image-environment
+          if-no-files-found: error
+          retention-days: 1
+
   publish:
     name: Publish multi-arch image
     needs: build
     runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.vars.outputs.image }}
+      ref_tag: ${{ steps.vars.outputs.ref_tag }}
+      with_latest: ${{ steps.vars.outputs.with_latest }}
     concurrency:
       group: ghcr-package
       # queue: max  # See: https://github.com/rhysd/actionlint/issues/657
@@ -350,11 +359,11 @@ jobs:
             echo "with_latest=false" >>"$GITHUB_OUTPUT"
           fi
 
-      - name: Download digest artifacts
+      - name: Download publish inputs artifacts
         uses: actions/download-artifact@v8
         with:
-          path: ${{ runner.temp }}/digests
-          pattern: digests-*
+          path: ${{ runner.temp }}
+          pattern: publish-inputs-*
           merge-multiple: true
 
       - name: Login to GitHub Container Registry
@@ -421,3 +430,68 @@ jobs:
 
           # Inspect the pushed manifest for a quick sanity check.
           docker buildx imagetools inspect "$image:$target_tag"
+
+  release:
+    name: Create GitHub Release
+    if: >-
+      github.ref_type == 'tag'
+      && needs.publish.outputs.with_latest == 'true'
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download publish inputs artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: ${{ runner.temp }}
+          pattern: publish-inputs-*
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        env:
+          ENVIRONMENT_DIR: ${{ runner.temp }}/image-environment
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE: ${{ needs.publish.outputs.image }}
+          REF_TAG: ${{ needs.publish.outputs.ref_tag }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |-
+          set -euo pipefail
+
+          amd64_file="$ENVIRONMENT_DIR/linux-amd64.txt"
+          arm64_file="$ENVIRONMENT_DIR/linux-arm64.txt"
+          amd64_mg5_version=$(sed -n \
+            's/^mg5_aMC_version=//p' "$amd64_file")
+          arm64_mg5_version=$(sed -n \
+            's/^mg5_aMC_version=//p' "$arm64_file")
+
+          release_notes="$RUNNER_TEMP/release-notes.md"
+          # shellcheck disable=SC2016  # Markdown backticks are literal.
+          {
+            printf '`%s:%s`\n\n' "$IMAGE" "$REF_TAG"
+            if [[ -n $amd64_mg5_version &&
+              -n $arm64_mg5_version &&
+              $amd64_mg5_version == "$arm64_mg5_version" ]]; then
+              printf 'MadGraph5_aMC@NLO %s\n\n' "$amd64_mg5_version"
+            else
+              amd64_mg5_version=${amd64_mg5_version:-not detected}
+              arm64_mg5_version=${arm64_mg5_version:-not detected}
+              printf '> [!WARNING]\n'
+              printf '> MadGraph5_aMC@NLO versions are missing or differ between architectures:\n'
+              printf '> - `linux/amd64`: `%s`\n' "$amd64_mg5_version"
+              printf '> - `linux/arm64`: `%s`\n\n' "$arm64_mg5_version"
+            fi
+            for architecture in amd64 arm64; do
+              printf '<details>\n\n<summary>linux/%s</summary>\n\n```\n' \
+                "$architecture"
+              cat "$ENVIRONMENT_DIR/linux-$architecture.txt"
+              printf '```\n\n</details>\n\n'
+            done
+          } >"$release_notes"
+
+          # Each version tag is released once; an existing release is an error.
+          gh release create "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --title "$RELEASE_TAG" \
+            --notes-file "$release_notes"
