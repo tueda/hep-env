@@ -5,6 +5,8 @@
     "--cleanenv",
     "apptainer",
     "CPLUS_INCLUDE_PATH",
+    "CUDA",
+    "cudacpp",
     "delphes",
     "eMELA",
     "hepmc",

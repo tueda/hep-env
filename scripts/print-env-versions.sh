@@ -6,6 +6,7 @@ set -euo pipefail
 # spell-checker: ignore -dumpversion
 # spell-checker: ignore clangxx
 # spell-checker: ignore Cython
+# spell-checker: ignore CUDACPP
 # spell-checker: ignore Delphes
 # spell-checker: ignore eMELA
 # spell-checker: ignore FastJet
@@ -195,6 +196,11 @@ mg5_aMC_version() {
   echo 'exit' | mg5_aMC | grep -i version | first_line | sed 's/^.*version//i' | awk '{print $1}'
 }
 
+cudacpp_version() {
+  awk '$1 == "cudacpp_version" { print $3; exit }' \
+    "$(dirname "$(command -v mg5_aMC)")/../PLUGIN/CUDACPP_OUTPUT/VERSION.txt"
+}
+
 lhapdf_version() {
   lhapdf-config --version
 }
@@ -255,6 +261,7 @@ for f in \
   form_version \
   root_version \
   mg5_aMC_version \
+  cudacpp_version \
   lhapdf_version \
   eMELA_version \
   pythia8_version \

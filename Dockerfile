@@ -95,21 +95,27 @@ RUN echo "set use_pigz True" | $MG5_DIR/bin/mg5_aMC \
 # the default value to './HEPTools'.
 RUN echo "heptools_install_dir = $HEPTOOLS_DIR" >>"$MG5_DIR/input/mg5_configuration.txt"
 
-# Install LHAPDF6.
-# Since heptools_install_dir is set, the configuration file is written
-# under $XDG_CONFIG_HOME.
-# Note that this step downloads HEPToolsInstallers.
+# Install the CUDACPP SIMD/GPU output plugin.
+# This first HEPTools installation also downloads HEPToolsInstallers.
+# Note that with heptools_install_dir set, MG5 uses XDG_CONFIG_HOME when
+# saving most installed-tool paths. MG5 3.7.2 does not use it for CUDACPP
+# or MadAnalysis5, but future versions may.
 RUN --mount=type=bind,source=scripts/apply-patches.sh,target=/tmp/apply-patches.sh,readonly \
     --mount=type=bind,source=patches/HEPToolsInstallers/install-emela-boost-path,target=/tmp/patches1,readonly \
     --mount=type=bind,source=patches/HEPToolsInstallers/update-hepmc-config-guess,target=/tmp/patches2,readonly \
     --mount=type=bind,source=patches/HEPToolsInstallers/ma5-success-detection,target=/tmp/patches3,readonly \
-    --mount=type=bind,source=patches/lhapdf/migrate-to-requiring-py3,target=/tmp/patches4,readonly \
-    echo "install lhapdf6" | XDG_CONFIG_HOME="$MG5_DIR/input" MAKEFLAGS="-j$(nproc)" $MG5_DIR/bin/mg5_aMC \
-    && grep -q "^lhapdf_py3 = $HEPTOOLS_DIR/lhapdf6_py3/bin/lhapdf-config #" $MG5_DIR/input/mg5_configuration.txt \
+    echo "install cudacpp" | XDG_CONFIG_HOME="$MG5_DIR/input" $MG5_DIR/bin/mg5_aMC \
+    && test -s $MG5_DIR/PLUGIN/CUDACPP_OUTPUT/VERSION.txt \
     && /tmp/apply-patches.sh /tmp/patches1 $HEPTOOLS_DIR/HEPToolsInstallers \
     && /tmp/apply-patches.sh /tmp/patches2 $HEPTOOLS_DIR/HEPToolsInstallers \
-    && /tmp/apply-patches.sh /tmp/patches3 $HEPTOOLS_DIR/HEPToolsInstallers \
-    && /tmp/apply-patches.sh /tmp/patches4 $HEPTOOLS_DIR/lhapdf6_py3 \
+    && /tmp/apply-patches.sh /tmp/patches3 $HEPTOOLS_DIR/HEPToolsInstallers
+
+# Install LHAPDF6.
+RUN --mount=type=bind,source=scripts/apply-patches.sh,target=/tmp/apply-patches.sh,readonly \
+    --mount=type=bind,source=patches/lhapdf/migrate-to-requiring-py3,target=/tmp/patches1,readonly \
+    echo "install lhapdf6" | XDG_CONFIG_HOME="$MG5_DIR/input" MAKEFLAGS="-j$(nproc)" $MG5_DIR/bin/mg5_aMC \
+    && grep -q "^lhapdf_py3 = $HEPTOOLS_DIR/lhapdf6_py3/bin/lhapdf-config #" $MG5_DIR/input/mg5_configuration.txt \
+    && /tmp/apply-patches.sh /tmp/patches1 $HEPTOOLS_DIR/lhapdf6_py3 \
     && mv $HEPTOOLS_DIR/lhapdf6_py3/share/LHAPDF $DATA_DIR \
     && ln -s $DATA_DIR/LHAPDF $HEPTOOLS_DIR/lhapdf6_py3/share/LHAPDF
 
