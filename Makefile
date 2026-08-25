@@ -49,8 +49,8 @@ $(DOCKER_DATA_STAMP): | update-docker $(DATA_DIR)
 	docker run --rm \
 		-v $(dir $(DOCKER_DATA_DIR)):/work \
 		$(DOCKER_IMAGE_TAG) \
-		cp -r /data /work/$(notdir $(DOCKER_DATA_DIR))
-	@touch $@
+		sh -c 'cp -r /data /work/$(notdir $(DOCKER_DATA_DIR)) \
+		&& touch /work/$(notdir $(DOCKER_DATA_DIR))/$(notdir $@)'
 
 $(APPTAINER_DATA_STAMP): | update-apptainer $(DATA_DIR)
 	@if [ -e $(APPTAINER_DATA_DIR) ] || [ -L $(APPTAINER_DATA_DIR) ]; then \
