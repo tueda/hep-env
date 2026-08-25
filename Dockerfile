@@ -37,6 +37,11 @@ RUN wget -nv https://raw.githubusercontent.com/MadAnalysis/madanalysis5/refs/hea
     && python3 -m pip install --no-cache-dir --break-system-packages -r requirements.txt \
     && rm -f requirements.txt
 
+# Install useful Python packages for physics analysis.
+RUN python3 -m pip install --no-cache-dir --break-system-packages \
+    uproot==5.7.* \
+    vector==1.8.*
+
 ARG MG5_URL=https://launchpad.net/mg5amcnlo/3.0/3.7.x/+download/MG5_aMC_v3.7.2.tar.gz
 ARG MG5_SHA256=278c447ffb3b2b6fe22fe1214bd74efc971058912053d6553299e5752e2d5648
 
