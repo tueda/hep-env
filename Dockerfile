@@ -42,8 +42,8 @@ RUN python3 -m pip install --no-cache-dir --break-system-packages \
     uproot==5.7.* \
     vector==1.8.*
 
-ARG MG5_URL=https://launchpad.net/mg5amcnlo/3.0/3.7.x/+download/MG5_aMC_v3.7.2.tar.gz
-ARG MG5_SHA256=278c447ffb3b2b6fe22fe1214bd74efc971058912053d6553299e5752e2d5648
+ARG MG5_URL=https://launchpad.net/mg5amcnlo/3.0/3.7.x/+download/MG5_aMC_v3.7.3.tar.gz
+ARG MG5_SHA256=5964645515a130550f77a1e66f5db62b63d3f79ef81c24cb41ba657c1a45769b
 
 ARG MG5_DIR=/opt/MG5_aMC
 ARG HEPTOOLS_DIR=$MG5_DIR/HEPTools
@@ -98,7 +98,7 @@ RUN echo "heptools_install_dir = $HEPTOOLS_DIR" >>"$MG5_DIR/input/mg5_configurat
 # Install the CUDACPP SIMD/GPU output plugin.
 # This first HEPTools installation also downloads HEPToolsInstallers.
 # Note that with heptools_install_dir set, MG5 uses XDG_CONFIG_HOME when
-# saving most installed-tool paths. MG5 3.7.2 does not use it for CUDACPP
+# saving most installed-tool paths. Currently, MG5 does not use it for CUDACPP
 # or MadAnalysis5, but future versions may.
 RUN --mount=type=bind,source=scripts/apply-patches.sh,target=/tmp/apply-patches.sh,readonly \
     --mount=type=bind,source=patches/HEPToolsInstallers/install-emela-boost-path,target=/tmp/patches1,readonly \
