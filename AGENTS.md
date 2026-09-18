@@ -37,10 +37,10 @@ be run with Docker or Apptainer.
 
 ### Commands and Verification
 
-- Install the local hooks with `pre-commit install`.
+- Install the local hooks with `prek install`.
 - During development, run focused checks with
-  `pre-commit run <hook-id> --files <path>...`. Before finishing, run
-  `pre-commit run --all-files`. Inspect the diff after running hooks because
+  `prek run <hook-id> --files <path>...`. Before finishing, run
+  `prek run --all-files`. Inspect the diff after running hooks because
   some of them modify files.
 - For changes to the `Dockerfile`, patch series, or installation scripts used
   by the image build, run `make update-docker`. This build can be slow and

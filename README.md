@@ -20,8 +20,8 @@ apptainer shell --bind "$(pwd)/data:/data" docker://ghcr.io/tueda/hep-env:latest
 ## Development
 
 ```bash
-pre-commit install
-pre-commit run --all-files
+prek install  # or use pre-commit
+prek run --all-files
 make run-docker
 make run-apptainer
 ```
