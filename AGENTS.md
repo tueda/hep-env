@@ -127,6 +127,10 @@ be run with Docker or Apptainer.
   wrapping would damage a URL, command, generated content, patch, or other
   structured text. Do not reflow existing lines outside the scope of the
   current change solely to enforce this convention.
+- Use CalVer release tags of the form `vYYYY.0M.MICRO` (for example,
+  `v2026.09.0`). The year has at least four digits, the month is zero-padded
+  (`01` through `12`), and `MICRO` starts at `0` each month and increases by
+  one for each later release.
 
 ## Working Principles
 
