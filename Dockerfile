@@ -42,8 +42,8 @@ RUN python3 -m pip install --no-cache-dir --break-system-packages \
     uproot==5.7.* \
     vector==1.8.*
 
-ARG MG5_URL=https://launchpad.net/mg5amcnlo/3.0/3.7.x/+download/MG5_aMC_v3.7.3.tar.gz
-ARG MG5_SHA256=5964645515a130550f77a1e66f5db62b63d3f79ef81c24cb41ba657c1a45769b
+ARG MG5_URL=https://launchpad.net/mg5amcnlo/3.0/3.8.x/+download/MG5_aMC_v3.8.0.tar.gz
+ARG MG5_SHA256=7d5547b06a6cb401993e5a303b54efdd8a81ca06e64ee765838340ae8a106a8f
 
 ARG MG5_DIR=/opt/MG5_aMC
 ARG HEPTOOLS_DIR=$MG5_DIR/HEPTools
