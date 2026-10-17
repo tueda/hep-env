@@ -9,6 +9,7 @@
     "cudacpp",
     "delphes",
     "eMELA",
+    "GPT",
     "hepmc",
     "Histo",
     "histos.saf",
@@ -23,6 +24,7 @@
     "tombi",
     "ttbar",
     "tueda",
+    "xhigh",
     "zizmor"
   ],
   "ignorePaths": ["**/*.patch"],

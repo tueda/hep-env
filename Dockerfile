@@ -42,8 +42,8 @@ RUN python3 -m pip install --no-cache-dir --break-system-packages \
     uproot==5.7.* \
     vector==1.8.*
 
-ARG MG5_URL=https://launchpad.net/mg5amcnlo/3.0/3.8.x/+download/MG5_aMC_v3.8.0.tar.gz
-ARG MG5_SHA256=7d5547b06a6cb401993e5a303b54efdd8a81ca06e64ee765838340ae8a106a8f
+ARG MG5_URL=https://launchpad.net/mg5amcnlo/3.0/3.8.x/+download/MG5_aMC_v3.8.1.tar.gz
+ARG MG5_SHA256=281b9055af99f45217dc99378c520215f3129e65a9ab2fde6636e274aa6cd692
 
 ARG MG5_DIR=/opt/MG5_aMC
 ARG HEPTOOLS_DIR=$MG5_DIR/HEPTools
@@ -103,12 +103,10 @@ RUN echo "heptools_install_dir = $HEPTOOLS_DIR" >>"$MG5_DIR/input/mg5_configurat
 RUN --mount=type=bind,source=scripts/apply-patches.sh,target=/tmp/apply-patches.sh,readonly \
     --mount=type=bind,source=patches/HEPToolsInstallers/install-emela-boost-path,target=/tmp/patches1,readonly \
     --mount=type=bind,source=patches/HEPToolsInstallers/update-hepmc-config-guess,target=/tmp/patches2,readonly \
-    --mount=type=bind,source=patches/HEPToolsInstallers/ma5-success-detection,target=/tmp/patches3,readonly \
     echo "install cudacpp" | XDG_CONFIG_HOME="$MG5_DIR/input" $MG5_DIR/bin/mg5_aMC \
     && test -s $MG5_DIR/PLUGIN/CUDACPP_OUTPUT/VERSION.txt \
     && /tmp/apply-patches.sh /tmp/patches1 $HEPTOOLS_DIR/HEPToolsInstallers \
-    && /tmp/apply-patches.sh /tmp/patches2 $HEPTOOLS_DIR/HEPToolsInstallers \
-    && /tmp/apply-patches.sh /tmp/patches3 $HEPTOOLS_DIR/HEPToolsInstallers
+    && /tmp/apply-patches.sh /tmp/patches2 $HEPTOOLS_DIR/HEPToolsInstallers
 
 # Install LHAPDF6.
 RUN --mount=type=bind,source=scripts/apply-patches.sh,target=/tmp/apply-patches.sh,readonly \
