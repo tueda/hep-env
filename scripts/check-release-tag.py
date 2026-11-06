@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Validate the tag ref exposed by pre-commit during a push."""
 
-import datetime
+import datetime as dt
 import os
 import re
 import subprocess
@@ -10,7 +10,7 @@ from collections.abc import Iterable
 RELEASE_TAG_RE = re.compile(r"v[0-9]{4,}\.(?:0[1-9]|1[0-2])\.(?:0|[1-9][0-9]*)")
 
 
-def validate(tag: str, today: datetime.date, existing_tags: Iterable[str]) -> None:
+def validate(tag: str, today: dt.date, existing_tags: Iterable[str]) -> None:
     """Validate a release tag."""
     prefix = f"v{today:%Y.%m}."
     release_numbers = [
@@ -39,7 +39,7 @@ def main() -> None:
 
     tag = ref.removeprefix("refs/tags/")
 
-    today = datetime.datetime.now().astimezone().date()
+    today = dt.datetime.now().astimezone().date()
     prefix = f"v{today:%Y.%m}."
 
     result = subprocess.run(  # noqa: S603
